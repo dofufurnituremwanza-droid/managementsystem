@@ -82,12 +82,12 @@ export const InventoryModal = () => {
     >
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="form-group form-full">
-          <label>Item / Material Name *</label>
+          <label>Item / Furniture Piece Name *</label>
           <input
             type="text"
             required
             className="form-input"
-            placeholder="e.g. Kiln-Dried Mvule Planks (2x10x12ft) or Emerald Velvet Fabric Roll"
+            placeholder="e.g. Solid Mvule 8-Seater Dining Table or Chesterfield Velvet Sofa"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
@@ -96,7 +96,7 @@ export const InventoryModal = () => {
         <ImageUploader
           value={formData.imageUrl}
           onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
-          label="Product / Material Photo (Optional)"
+          label="Product / Furniture Showroom Photo *"
         />
 
         <div className="form-group">
@@ -106,16 +106,20 @@ export const InventoryModal = () => {
             value={formData.category}
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
           >
-            <option value="Timber & Hardwood">Timber & Hardwood</option>
+            <option value="Finished Furniture">Finished Furniture (Showroom Piece)</option>
+            <option value="Living Room & Sofas">Living Room & Sofas</option>
+            <option value="Dining Tables & Chairs">Dining Tables & Chairs</option>
+            <option value="Beds & Bedroom Furniture">Beds & Bedroom Furniture</option>
+            <option value="Executive Desks & Storage">Executive Desks & Storage</option>
+            <option value="Timber & Hardwood">Timber & Hardwood Planks</option>
             <option value="Fabrics & Leather">Fabrics & Leather Upholstery</option>
             <option value="Hardware & Fittings">Hardware & Joinery Fittings</option>
             <option value="Finishes & Paints">Finishes, Stains & Sealers</option>
-            <option value="Finished Furniture">Finished Furniture (Showroom Stock)</option>
           </select>
         </div>
 
         <div className="form-group">
-          <label>Item SKU / Barcode</label>
+          <label>Item SKU / Stock Code</label>
           <input
             type="text"
             className="form-input"
@@ -143,6 +147,7 @@ export const InventoryModal = () => {
             onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
           >
             <option value="Pieces">Pieces / Units</option>
+            <option value="Sets">Sets</option>
             <option value="Planks / Boards">Planks / Boards</option>
             <option value="Meters / Yards">Meters / Yards</option>
             <option value="Rolls">Rolls</option>
@@ -150,6 +155,57 @@ export const InventoryModal = () => {
             <option value="Sets / Pairs">Sets / Pairs</option>
             <option value="Kilograms">Kilograms</option>
           </select>
+        </div>
+
+        {/* Pricing & Profit Section */}
+        <div className="form-group form-full" style={{
+          background: 'rgba(197, 160, 89, 0.04)',
+          border: '1px solid rgba(197, 160, 89, 0.25)',
+          borderRadius: '12px',
+          padding: '16px',
+          marginTop: '6px',
+          marginBottom: '6px'
+        }}>
+          <div style={{ fontWeight: 600, color: 'var(--gold-light)', fontSize: '0.88rem', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Item Pricing & Profit Margins</span>
+            {Number(formData.sellingPrice) > 0 && (
+              <span style={{ fontSize: '0.8rem', color: Number(formData.sellingPrice) >= Number(formData.costPrice) ? '#10b981' : '#ef4444' }}>
+                {Number(formData.sellingPrice) >= Number(formData.costPrice)
+                  ? `Est. Profit: +${(Number(formData.sellingPrice) - Number(formData.costPrice)).toLocaleString()} TSh / unit`
+                  : 'Selling below cost'}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div>
+              <label style={{ color: '#fff', fontWeight: 600 }}>Selling / Retail Price (TSh) *</label>
+              <input
+                type="number"
+                min="0"
+                required
+                className="form-input"
+                style={{ borderColor: 'var(--gold-primary)', background: 'rgba(197, 160, 89, 0.08)', fontWeight: 700 }}
+                placeholder="Amount customer pays (e.g. 1500000)"
+                value={formData.sellingPrice}
+                onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) || 0 })}
+              />
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Price charged when making a sale</span>
+            </div>
+
+            <div>
+              <label>Cost / Production Price (TSh)</label>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                placeholder="Timber & labor cost (e.g. 900000)"
+                value={formData.costPrice}
+                onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) || 0 })}
+              />
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Raw materials & workshop production cost</span>
+            </div>
+          </div>
         </div>
 
         <div className="form-group">
@@ -165,44 +221,22 @@ export const InventoryModal = () => {
         </div>
 
         <div className="form-group">
-          <label>Cost / Purchase Price per Unit</label>
-          <input
-            type="number"
-            min="0"
-            className="form-input"
-            value={formData.costPrice}
-            onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) || 0 })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Selling / Retail Price (if applicable)</label>
-          <input
-            type="number"
-            min="0"
-            className="form-input"
-            value={formData.sellingPrice}
-            onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) || 0 })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Supplier / Timber Mill</label>
+          <label>Supplier / Workshop Source</label>
           <input
             type="text"
             className="form-input"
-            placeholder="e.g. Kilombero Timber Mills / Dar Fabric Importers"
+            placeholder="e.g. In-House Workshop / Mwanza Timber Depot"
             value={formData.supplier}
             onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
           />
         </div>
 
         <div className="form-group form-full">
-          <label>Workshop Storage Location & Notes</label>
+          <label>Showroom / Workshop Storage Location & Notes</label>
           <input
             type="text"
             className="form-input"
-            placeholder="e.g. Rack B, Section 3 - Timber Bay"
+            placeholder="e.g. Showroom Floor Section A - Dining Display"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           />

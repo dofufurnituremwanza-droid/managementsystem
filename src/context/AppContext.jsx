@@ -41,6 +41,7 @@ export const AppProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [notes, setNotes] = useState([]);
   
@@ -152,6 +153,8 @@ export const AppProvider = ({ children }) => {
     unsubs.push(subscribeToCollection('inventory', (data) => setInventory(data)));
     // Invoices
     unsubs.push(subscribeToCollection('invoices', (data) => setInvoices(data)));
+    // Direct Showroom Sales
+    unsubs.push(subscribeToCollection('sales', (data) => setSales(data)));
     // Expenses
     unsubs.push(subscribeToCollection('expenses', (data) => setExpenses(data)));
     // Personal Notebook & Reminders
@@ -216,6 +219,7 @@ export const AppProvider = ({ children }) => {
         'projects',
         'inventory',
         'invoices',
+        'sales',
         'expenses'
       ]);
       showToast(`Synced ${count} items to Cloud Firestore!`, 'success');
@@ -289,6 +293,7 @@ export const AppProvider = ({ children }) => {
         projects,
         inventory,
         invoices,
+        sales,
         expenses,
         notes,
         settings,

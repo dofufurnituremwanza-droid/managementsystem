@@ -24,6 +24,8 @@ import { ClientModal } from './components/Clients/ClientModal';
 import { InvoiceModal } from './components/Billing/InvoiceModal';
 import { InvoicePrintView } from './components/Billing/InvoicePrintView';
 import { InventoryModal } from './components/Inventory/InventoryModal';
+import { MakeSaleModal } from './components/Inventory/MakeSaleModal';
+import { SaleReceiptModal } from './components/Inventory/SaleReceiptModal';
 import { ExpenseModal } from './components/Expenses/ExpenseModal';
 import { FirebaseConfigModal } from './components/Settings/FirebaseConfigModal';
 
@@ -58,6 +60,8 @@ const MainLayout = () => {
       <InvoiceModal />
       <InvoicePrintView />
       <InventoryModal />
+      <MakeSaleModal />
+      <SaleReceiptModal />
       <ExpenseModal />
       <FirebaseConfigModal />
 
