@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
+import { ImageUploader } from '../Common/ImageUploader';
 
 export const ProjectModal = () => {
   const { modalConfig, setModalConfig, clients, addItem, editItem } = useApp();
@@ -12,6 +13,7 @@ export const ProjectModal = () => {
   const [formData, setFormData] = useState({
     projectCode: generateProjectCode(),
     title: '',
+    imageUrl: '',
     clientId: '',
     clientName: '',
     clientPhone: '',
@@ -39,6 +41,7 @@ export const ProjectModal = () => {
       setFormData({
         projectCode: existing.projectCode || generateProjectCode(),
         title: existing.title || '',
+        imageUrl: existing.imageUrl || '',
         clientId: existing.clientId || '',
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
@@ -64,6 +67,7 @@ export const ProjectModal = () => {
       setFormData({
         projectCode: generateProjectCode(),
         title: '',
+        imageUrl: '',
         clientId: '',
         clientName: '',
         clientPhone: '',
@@ -176,6 +180,12 @@ export const ProjectModal = () => {
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           />
         </div>
+
+        <ImageUploader
+          value={formData.imageUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+          label="3D Concept Render / Moodboard Photo (Optional)"
+        />
 
         <div className="form-group">
           <label>Client Contact Person *</label>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, X } from 'lucide-react';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 export const InvoiceModal = () => {
   const { modalConfig, setModalConfig, clients, addItem, editItem, settings } = useApp();
@@ -124,6 +125,16 @@ export const InvoiceModal = () => {
     const updated = [...formData.items];
     updated[index][field] = value;
     recalculate(updated);
+  };
+
+  const handleItemImageSelect = async (index, file) => {
+    if (!file) return;
+    try {
+      const compressed = await compressImageFile(file, 800, 800, 0.75);
+      handleItemChange(index, 'imageUrl', compressed);
+    } catch (err) {
+      console.error('Invoice line item photo compress error:', err);
+    }
   };
 
   const addItemRow = () => {
@@ -313,14 +324,83 @@ export const InvoiceModal = () => {
                   alignItems: 'center'
                 }}
               >
-                <input
-                  type="text"
-                  required
-                  className="form-input"
-                  placeholder="Description (e.g. 8-Seater Hardwood Dining Table, Teak Wood, 240x100cm)"
-                  value={item.description}
-                  onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {item.imageUrl ? (
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border-gold-card)',
+                        flexShrink: 0
+                      }}
+                      title="Item Photo"
+                    >
+                      <img
+                        src={item.imageUrl}
+                        alt="Product"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleItemChange(idx, 'imageUrl', '')}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          border: 'none',
+                          color: '#fff',
+                          padding: '1px 3px',
+                          cursor: 'pointer',
+                          borderRadius: '0 0 0 4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Remove photo"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '6px',
+                        border: '1px dashed rgba(197, 160, 89, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: 'var(--gold-light)',
+                        flexShrink: 0,
+                        background: 'rgba(255, 255, 255, 0.02)'
+                      }}
+                      title="Attach product photo to line item"
+                    >
+                      <ImagePlus size={15} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleItemImageSelect(idx, e.target.files?.[0])}
+                      />
+                    </label>
+                  )}
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    style={{ flex: 1 }}
+                    placeholder="Description (e.g. 8-Seater Hardwood Dining Table, Teak Wood, 240x100cm)"
+                    value={item.description}
+                    onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
+                  />
+                </div>
                 <input
                   type="number"
                   min="1"

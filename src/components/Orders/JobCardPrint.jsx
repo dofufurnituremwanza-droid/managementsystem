@@ -124,6 +124,55 @@ export const JobCardPrint = () => {
           </div>
         </div>
 
+        {/* Product Reference Image if attached */}
+        {order.imageUrl && (
+          <div
+            style={{
+              marginBottom: '20px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              background: '#f9fafb',
+              padding: '12px 16px',
+              display: 'flex',
+              gap: '16px',
+              alignItems: 'center'
+            }}
+          >
+            <div
+              style={{
+                width: '150px',
+                height: '130px',
+                borderRadius: '6px',
+                overflow: 'hidden',
+                border: '1px solid #d1d5db',
+                background: '#fff',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <img
+                src={order.imageUrl}
+                alt="Product Reference Photo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>
+                APPROVED PRODUCT REFERENCE PHOTO / DESIGN SKETCH
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#111827', margin: '3px 0' }}>
+                {order.itemName}
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
+                Carpenters & upholsterers must cross-reference this photograph for joinery details, curves, and proportioning.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Specifications & Cutting Sheet */}
         <div style={{ marginBottom: '20px' }}>
           <h4

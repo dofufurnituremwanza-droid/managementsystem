@@ -12,7 +12,8 @@ import {
   Edit2,
   Trash2,
   Layers,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 
 const STAGE_LABELS = {
@@ -29,6 +30,7 @@ export const ProjectsList = () => {
   const { projects, setModalConfig, removeItem, editItem, formatMoney } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
+  const [previewImage, setPreviewImage] = useState(null);
 
   const filtered = projects.filter((p) => {
     const matchSearch =
@@ -164,6 +166,29 @@ export const ProjectsList = () => {
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
+
+                {/* 3D Concept Render / Moodboard Image */}
+                {project.imageUrl && (
+                  <div
+                    onClick={() => setPreviewImage({ url: project.imageUrl, title: project.title })}
+                    style={{
+                      height: '140px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '12px',
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-gold-card)',
+                      background: '#090b0e'
+                    }}
+                    title="Click to zoom 3D concept photo"
+                  >
+                    <img
+                      src={project.imageUrl}
+                      alt={project.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                )}
 
                 {/* Project Title */}
                 <h3
@@ -347,6 +372,84 @@ export const ProjectsList = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 3D Concept Render Lightbox Modal */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '85vh',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+              border: '1px solid var(--border-gold-card)',
+              background: '#090b0e',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 18px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(15, 18, 24, 0.95)'
+              }}
+            >
+              <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>
+                {previewImage.title || '3D Render / Concept'}
+              </span>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setPreviewImage(null)}
+                style={{ padding: '6px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div
+              style={{
+                padding: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                maxHeight: '75vh',
+                overflow: 'auto'
+              }}
+            >
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px'
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

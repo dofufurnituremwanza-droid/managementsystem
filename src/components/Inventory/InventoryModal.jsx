@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
+import { ImageUploader } from '../Common/ImageUploader';
 
 export const InventoryModal = () => {
   const { modalConfig, setModalConfig, addItem, editItem } = useApp();
@@ -9,6 +10,7 @@ export const InventoryModal = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    imageUrl: '',
     sku: `SKU-${Math.floor(100 + Math.random() * 900)}`,
     category: 'Timber & Hardwood',
     quantity: 0,
@@ -25,6 +27,7 @@ export const InventoryModal = () => {
     if (modalConfig.data) {
       setFormData({
         name: existing.name || '',
+        imageUrl: existing.imageUrl || '',
         sku: existing.sku || `SKU-${Math.floor(100 + Math.random() * 900)}`,
         category: existing.category || 'Timber & Hardwood',
         quantity: existing.quantity !== undefined ? existing.quantity : 0,
@@ -39,6 +42,7 @@ export const InventoryModal = () => {
     } else {
       setFormData({
         name: '',
+        imageUrl: '',
         sku: `SKU-${Math.floor(100 + Math.random() * 900)}`,
         category: 'Timber & Hardwood',
         quantity: 0,
@@ -88,6 +92,12 @@ export const InventoryModal = () => {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
         </div>
+
+        <ImageUploader
+          value={formData.imageUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+          label="Product / Material Photo (Optional)"
+        />
 
         <div className="form-group">
           <label>Stock Category</label>

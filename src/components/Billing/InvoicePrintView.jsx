@@ -224,7 +224,23 @@ export const InvoicePrintView = () => {
                     {idx + 1}
                   </td>
                   <td style={{ padding: '12px 14px', fontWeight: 600 }}>
-                    {item.description}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt="Product"
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '4px',
+                            objectFit: 'cover',
+                            border: '1px solid #e5e7eb',
+                            flexShrink: 0
+                          }}
+                        />
+                      )}
+                      <div>{item.description}</div>
+                    </div>
                   </td>
                   <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                     {item.quantity}

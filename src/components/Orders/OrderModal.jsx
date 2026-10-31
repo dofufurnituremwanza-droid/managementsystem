@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
+import { ImageUploader } from '../Common/ImageUploader';
 
 export const OrderModal = () => {
   const { modalConfig, setModalConfig, clients, addItem, editItem } = useApp();
@@ -15,6 +16,7 @@ export const OrderModal = () => {
     clientName: '',
     clientPhone: '',
     itemName: '',
+    imageUrl: '',
     category: 'Dining',
     woodType: 'Mahogany',
     dimensions: '',
@@ -38,6 +40,7 @@ export const OrderModal = () => {
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
         itemName: existing.itemName || '',
+        imageUrl: existing.imageUrl || '',
         category: existing.category || 'Dining',
         woodType: existing.woodType || 'Mahogany',
         dimensions: existing.dimensions || '',
@@ -59,6 +62,7 @@ export const OrderModal = () => {
         clientName: '',
         clientPhone: '',
         itemName: '',
+        imageUrl: '',
         category: 'Dining',
         woodType: 'Mahogany',
         dimensions: '',
@@ -192,6 +196,12 @@ export const OrderModal = () => {
             onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
           />
         </div>
+
+        <ImageUploader
+          value={formData.imageUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+          label="Product Photo / Design Reference Image"
+        />
 
         <div className="form-group">
           <label>Category</label>
