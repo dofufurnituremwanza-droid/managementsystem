@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   Plus,
   CheckCircle2,
-  Database
+  Database,
+  BookOpen,
+  Pin
 } from 'lucide-react';
 
 export const DashboardView = () => {
@@ -24,6 +26,7 @@ export const DashboardView = () => {
     invoices,
     expenses,
     inventory,
+    notes,
     setActiveTab,
     setModalConfig,
     formatMoney,
@@ -258,6 +261,111 @@ export const DashboardView = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DOFU's Reminders & Urgent Notes Widget */}
+      {notes.length > 0 && (
+        <div
+          className="card card-gold-accent"
+          style={{
+            marginBottom: '26px',
+            padding: '18px 24px',
+            background: 'linear-gradient(90deg, rgba(22, 26, 34, 0.95) 0%, rgba(32, 26, 18, 0.9) 100%)'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Pin size={18} color="var(--gold-primary)" style={{ transform: 'rotate(45deg)' }} />
+              <div>
+                <h4 style={{ color: '#fff', fontSize: '1.05rem', margin: 0, fontFamily: 'var(--font-serif)' }}>
+                  DOFU's Reminders & Pinned Notes
+                </h4>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Active personal memos, measurements & follow-ups
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="btn btn-outline-gold btn-sm"
+                onClick={() => setModalConfig({ type: 'new_note' })}
+              >
+                <Plus size={13} /> Quick Note
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setActiveTab('notebook')}
+              >
+                <span>Open Notebook</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '12px'
+            }}
+          >
+            {notes
+              .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+              .slice(0, 3)
+              .map((note) => (
+                <div
+                  key={note.id}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    borderLeft: `3px solid ${note.priority === 'high' ? '#ef4444' : 'var(--gold-primary)'}`
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--gold-light)', fontWeight: 600 }}>
+                      {note.category}
+                    </span>
+                    {note.reminderDate && (
+                      <span style={{ fontSize: '0.68rem', color: '#f59e0b' }}>
+                        ⏰ {note.reminderDate}
+                      </span>
+                    )}
+                  </div>
+                  <strong style={{ color: '#fff', fontSize: '0.88rem', display: 'block', marginBottom: '4px' }}>
+                    {note.title}
+                  </strong>
+                  {note.content && (
+                    <p
+                      style={{
+                        fontSize: '0.78rem',
+                        color: 'var(--text-secondary)',
+                        margin: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}
+                    >
+                      {note.content}
+                    </p>
+                  )}
+                </div>
+              ))}
           </div>
         </div>
       )}

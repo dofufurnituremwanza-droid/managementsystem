@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import {
   Menu,
   Plus,
+  BookOpen,
   Armchair,
   Compass,
   FileText,
@@ -14,6 +15,7 @@ import {
 
 const TAB_META = {
   dashboard: { title: 'Business Overview', subtitle: 'Real-time performance, active jobs & financials' },
+  notebook: { title: "DOFU's Personal Notebook", subtitle: 'Quick reminders, carpenter measurements, follow-ups & to-do memos' },
   orders: { title: 'Bespoke Furniture Orders', subtitle: 'Carpentry, upholstery & delivery production pipeline' },
   projects: { title: 'Interior Design Projects', subtitle: 'Moodboards, room specs, site measurements & stages' },
   clients: { title: 'Clients Directory', subtitle: 'Client records, order history & site locations' },
@@ -88,6 +90,17 @@ export const Header = () => {
                 gap: '4px'
               }}
             >
+              <button
+                className="nav-btn"
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setModalConfig({ type: 'new_note' });
+                }}
+              >
+                <BookOpen size={16} color="#c5a059" />
+                <span>Write Note / Reminder</span>
+              </button>
+
               <button
                 className="nav-btn"
                 onClick={() => {

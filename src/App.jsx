@@ -7,6 +7,7 @@ import { LoginView } from './components/Auth/LoginView';
 
 // Views
 import { DashboardView } from './components/Dashboard/DashboardView';
+import { NotebookView } from './components/Notebook/NotebookView';
 import { OrdersList } from './components/Orders/OrdersList';
 import { ProjectsList } from './components/Projects/ProjectsList';
 import { ClientsList } from './components/Clients/ClientsList';
@@ -16,6 +17,7 @@ import { ExpensesList } from './components/Expenses/ExpensesList';
 import { SettingsView } from './components/Settings/SettingsView';
 
 // Modals
+import { NoteModal } from './components/Notebook/NoteModal';
 import { OrderModal } from './components/Orders/OrderModal';
 import { JobCardPrint } from './components/Orders/JobCardPrint';
 import { ProjectModal } from './components/Projects/ProjectModal';
@@ -38,6 +40,7 @@ const MainLayout = () => {
 
         <div className="page-content">
           {activeTab === 'dashboard' && <DashboardView />}
+          {activeTab === 'notebook' && <NotebookView />}
           {activeTab === 'orders' && <OrdersList />}
           {activeTab === 'projects' && <ProjectsList />}
           {activeTab === 'clients' && <ClientsList />}
@@ -49,6 +52,7 @@ const MainLayout = () => {
       </main>
 
       {/* Global Modals & Overlays */}
+      <NoteModal />
       <OrderModal />
       <JobCardPrint />
       <ProjectModal />

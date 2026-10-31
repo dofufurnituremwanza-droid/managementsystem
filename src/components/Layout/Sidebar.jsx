@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard,
+  BookOpen,
   Armchair,
   Compass,
   Users,
@@ -29,6 +30,7 @@ export const Sidebar = () => {
     orders,
     projects,
     invoices,
+    notes,
     triggerSyncToFirestore,
     syncing
   } = useApp();
@@ -48,6 +50,12 @@ export const Sidebar = () => {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    {
+      id: 'notebook',
+      label: "DOFU's Notebook",
+      icon: BookOpen,
+      badge: notes.length > 0 ? notes.length : null
+    },
     {
       id: 'orders',
       label: 'Furniture Orders',

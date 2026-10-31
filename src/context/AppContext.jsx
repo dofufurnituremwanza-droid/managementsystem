@@ -42,6 +42,7 @@ export const AppProvider = ({ children }) => {
   const [inventory, setInventory] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [notes, setNotes] = useState([]);
   
   // Settings
   const [settings, setSettings] = useState(() => {
@@ -153,6 +154,8 @@ export const AppProvider = ({ children }) => {
     unsubs.push(subscribeToCollection('invoices', (data) => setInvoices(data)));
     // Expenses
     unsubs.push(subscribeToCollection('expenses', (data) => setExpenses(data)));
+    // Personal Notebook & Reminders
+    unsubs.push(subscribeToCollection('notes', (data) => setNotes(data)));
 
     setLoading(false);
 
@@ -287,6 +290,7 @@ export const AppProvider = ({ children }) => {
         inventory,
         invoices,
         expenses,
+        notes,
         settings,
         updateSettings,
         // Firebase State & Sync
