@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" rx="28" fill="#14171A"/>
+  <rect x="2" y="2" width="116" height="116" rx="26" stroke="#C5A059" stroke-opacity="0.3" stroke-width="2"/>
+  
+  <!-- Architectural & Furniture Arch / Chair silhouette -->
+  <path d="M35 85V48C35 34.1929 46.1929 23 60 23C73.8071 23 85 34.1929 85 48V85" stroke="#C5A059" stroke-width="6" stroke-linecap="round"/>
+  <path d="M28 85H92" stroke="#E5C07B" stroke-width="6" stroke-linecap="round"/>
+  <path d="M42 62H78" stroke="#D4A373" stroke-width="5" stroke-linecap="round"/>
+  
+  <!-- Wood grain subtle geometric accent -->
+  <circle cx="60" cy="46" r="6" fill="#C5A059"/>
+  <path d="M45 85V95" stroke="#8B5A2B" stroke-width="5" stroke-linecap="round"/>
+  <path d="M75 85V95" stroke="#8B5A2B" stroke-width="5" stroke-linecap="round"/>
+</svg>
