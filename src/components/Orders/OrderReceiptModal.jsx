@@ -34,7 +34,7 @@ export const OrderReceiptModal = () => {
       title={`Order & Payment Receipt (${order.orderNumber})`}
       size="lg"
       footer={
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Done
           </button>

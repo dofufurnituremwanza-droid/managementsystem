@@ -32,7 +32,7 @@ export const SaleReceiptModal = () => {
       title={`Showroom Sales Receipt (${sale.receiptNumber})`}
       size="md"
       footer={
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Done
           </button>

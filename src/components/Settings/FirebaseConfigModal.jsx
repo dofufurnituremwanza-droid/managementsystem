@@ -325,10 +325,13 @@ export const FirebaseConfigModal = () => {
                 justifyContent: 'space-between',
                 marginTop: '24px',
                 paddingTop: '16px',
-                borderTop: '1px solid var(--border-subtle)'
+                borderTop: '1px solid var(--border-subtle)',
+                flexWrap: 'wrap',
+                gap: '12px'
               }}
+              className="firebase-modal-actions"
             >
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"

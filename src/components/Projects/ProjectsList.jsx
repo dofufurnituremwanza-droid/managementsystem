@@ -107,13 +107,7 @@ export const ProjectsList = () => {
           <p style={{ color: 'var(--text-secondary)' }}>No projects matched your criteria.</p>
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-            gap: '20px'
-          }}
-        >
+        <div className="projects-grid">
           {filtered.map((project) => {
             const checklist = project.checklist || [];
             const doneCount = checklist.filter((c) => c.done).length;

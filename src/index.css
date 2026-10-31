@@ -528,13 +528,17 @@ body {
 /* Tables */
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
+  width: 100%;
+  max-width: 100%;
 }
 
 .luxury-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.86rem;
@@ -886,23 +890,380 @@ body {
   }
 }
 
-/* Responsive Styles */
+/* ==========================================================================
+   DOFU RESPONSIVE DESIGN SYSTEM (MOBILE PHONES, IPADS & DESKTOPS)
+   ========================================================================== */
+
+/* Responsive Helper Tokens */
+.mobile-menu-btn {
+  display: none;
+}
+
+.btn-label-mobile {
+  display: none;
+}
+
+/* Notebook Component Styles */
+.notebook-container {
+  display: flex;
+  height: calc(100vh - 125px);
+  min-height: 520px;
+  background: #12151b;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  width: 100%;
+}
+
+.notebook-pane-list {
+  width: 320px;
+  min-width: 280px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #161922;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.notebook-pane-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0f1217;
+  position: relative;
+  min-width: 0;
+}
+
+.notebook-editor-header {
+  height: 52px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(18, 22, 30, 0.6);
+  flex-shrink: 0;
+}
+
+.notebook-editor-body {
+  flex: 1;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notebook-back-btn {
+  display: none;
+}
+
+/* Grids */
+.dashboard-split-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.invoice-item-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 140px 120px 40px;
+  gap: 10px;
+  align-items: center;
+}
+
+/* --------------------------------------------------------------------------
+   Breakpoints: Tablets & iPads in Landscape/Portrait (<= 1024px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .top-header {
+    padding: 0 20px;
+  }
+  .page-content {
+    padding: 22px 18px;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .dashboard-split-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .notebook-container {
+    height: calc(100vh - 120px);
+  }
+  .notebook-pane-list {
+    width: 280px;
+    min-width: 240px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Breakpoints: Drawer Sidebar & Collapsible Layout (<= 992px)
+   -------------------------------------------------------------------------- */
 @media (max-width: 992px) {
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
   .sidebar {
     position: fixed;
+    top: 0;
     left: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: min(300px, 86vw);
+    z-index: 1050;
     transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
   }
   .sidebar.open {
     transform: translateX(0);
   }
-  .top-header {
-    padding: 0 16px;
-  }
-  .page-content {
-    padding: 20px 16px;
-  }
   .form-grid {
     grid-template-columns: 1fr;
   }
+  .modal-dialog {
+    max-width: min(94vw, 760px);
+  }
 }
+
+/* --------------------------------------------------------------------------
+   Breakpoints: Tablets Portrait & Mobile Phones (<= 768px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zoom on inputs */
+  .form-input, .form-select, .form-textarea {
+    font-size: 16px !important;
+  }
+
+  /* Notebook iPhone-style Single-Pane View */
+  .notebook-container {
+    height: calc(100dvh - 100px);
+    min-height: 440px;
+    border-radius: 12px;
+  }
+  .notebook-pane-list {
+    width: 100% !important;
+    min-width: 100% !important;
+    border-right: none;
+    display: none;
+  }
+  .notebook-pane-list.active-mobile {
+    display: flex;
+  }
+  .notebook-pane-editor {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: none;
+  }
+  .notebook-pane-editor.active-mobile {
+    display: flex;
+  }
+  .notebook-back-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+  .notebook-editor-header {
+    padding: 0 12px;
+  }
+  .notebook-editor-body {
+    padding: 16px 14px;
+  }
+
+  .projects-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Breakpoints: Mobile Phones (<= 640px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .top-header {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .header-title-group h2 {
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100vw - 160px);
+  }
+  .header-title-group p {
+    display: none;
+  }
+  .btn-label-desktop {
+    display: none;
+  }
+  .btn-label-mobile {
+    display: inline;
+  }
+  .page-content {
+    padding: 12px 10px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    padding: 14px 16px;
+  }
+  .stat-info .stat-value {
+    font-size: 1.35rem;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .toolbar > div {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .toolbar .search-box {
+    min-width: 100%;
+    width: 100%;
+  }
+  .toolbar select {
+    width: 100% !important;
+  }
+  .toolbar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modals on Mobile */
+  .modal-overlay {
+    padding: 6px;
+    align-items: flex-end;
+  }
+  .modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    max-height: 94dvh !important;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-header h3 {
+    font-size: 1.1rem;
+    line-height: 1.25;
+  }
+  .modal-body {
+    padding: 14px 12px;
+  }
+  .modal-footer {
+    padding: 12px 14px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-footer > div,
+  .modal-footer button {
+    width: 100% !important;
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  /* Invoice dynamic item row on mobile */
+  .invoice-item-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .invoice-item-row > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .invoice-item-row input[placeholder="Qty"] {
+    grid-column: 1 / 2;
+  }
+  .invoice-item-row input[placeholder="Unit Price"] {
+    grid-column: 2 / 3;
+  }
+  .invoice-item-row > div:nth-child(4) {
+    grid-column: 1 / 2;
+    text-align: center;
+  }
+  .invoice-item-row button {
+    grid-column: 2 / 3;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Login card on mobile phones */
+  .login-card {
+    padding: 26px 18px !important;
+    border-radius: 18px !important;
+  }
+
+  /* Print document preview inside modal */
+  .print-document {
+    padding: 8px !important;
+    font-size: 0.78rem;
+    overflow-x: auto;
+  }
+
+  /* Toast Notification */
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .toast {
+    width: 100%;
+    font-size: 0.82rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Breakpoints: Ultra-Narrow Devices (<= 380px e.g. iPhone SE)
+   -------------------------------------------------------------------------- */
+@media (max-width: 380px) {
+  .header-title-group h2 {
+    font-size: 0.95rem;
+    max-width: calc(100vw - 145px);
+  }
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  .stat-card {
+    padding: 12px;
+  }
+  .stat-icon-wrap {
+    width: 40px;
+    height: 40px;
+  }
+}
+

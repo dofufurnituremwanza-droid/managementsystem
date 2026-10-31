@@ -9,6 +9,7 @@ import {
   Clock,
   Check,
   ChevronRight,
+  ChevronLeft,
   BookOpen
 } from 'lucide-react';
 
@@ -16,6 +17,7 @@ export const NotebookView = () => {
   const { notes, addItem, editItem, removeItem } = useApp();
   const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileActiveView, setMobileActiveView] = useState('list'); // 'list' | 'editor'
   
   // Local active note state for fluid 60fps typing without lag
   const [activeTitle, setActiveTitle] = useState('');
@@ -96,6 +98,7 @@ export const NotebookView = () => {
       checklist: []
     });
     setSelectedNoteId(newNote.id);
+    setMobileActiveView('editor');
   };
 
   // Delete current note
@@ -106,6 +109,7 @@ export const NotebookView = () => {
       if (selectedNoteId === id) {
         const remaining = notes.filter((n) => n.id !== id);
         setSelectedNoteId(remaining.length > 0 ? remaining[0].id : null);
+        setMobileActiveView('list');
       }
     }
   };
@@ -161,31 +165,11 @@ export const NotebookView = () => {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: 'calc(100vh - 130px)',
-        minHeight: '580px',
-        background: '#12151b',
-        borderRadius: '16px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5)',
-        overflow: 'hidden'
-      }}
-    >
+    <div className="notebook-container">
       {/* ========================================================
           LEFT PANE: IPHONE-STYLE NOTES LIST
          ======================================================== */}
-      <div
-        style={{
-          width: '320px',
-          minWidth: '280px',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-          background: '#161922',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
+      <div className={`notebook-pane-list ${mobileActiveView === 'list' ? 'active-mobile' : ''}`}>
         {/* Top Toolbar */}
         <div
           style={{
@@ -283,7 +267,10 @@ export const NotebookView = () => {
                 return (
                   <div
                     key={note.id}
-                    onClick={() => setSelectedNoteId(note.id)}
+                    onClick={() => {
+                      setSelectedNoteId(note.id);
+                      setMobileActiveView('editor');
+                    }}
                     style={{
                       padding: '12px 14px',
                       borderRadius: '10px',
@@ -343,39 +330,33 @@ export const NotebookView = () => {
       {/* ========================================================
           RIGHT PANE: APPLE NOTES PAPER EDITOR
          ======================================================== */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#0f1217',
-          position: 'relative'
-        }}
-      >
+      <div className={`notebook-pane-editor ${mobileActiveView === 'editor' ? 'active-mobile' : ''}`}>
         {selectedNote ? (
           <>
             {/* Top Action Toolbar */}
-            <div
-              style={{
-                height: '52px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 24px',
-                background: 'rgba(18, 22, 30, 0.6)'
-              }}
-            >
-              {/* Auto-save status */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#94a3b8' }}>
-                {isSaving ? (
-                  <span>Saving...</span>
-                ) : (
-                  <>
-                    <Check size={13} color="#10b981" />
-                    <span>Saved to Cloud</span>
-                  </>
-                )}
+            <div className="notebook-editor-header">
+              {/* Back to Notes button on mobile + Auto-save status */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="notebook-back-btn btn btn-secondary btn-sm"
+                  onClick={() => setMobileActiveView('list')}
+                  title="Back to all notes"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Notes</span>
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {isSaving ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <Check size={13} color="#10b981" />
+                      <span className="notebook-status-text">Saved</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Actions */}
@@ -387,7 +368,7 @@ export const NotebookView = () => {
                   title="Insert Checklist bullet"
                 >
                   <CheckSquare size={14} color="var(--gold-primary)" />
-                  <span>Checklist</span>
+                  <span className="btn-label-desktop">Checklist</span>
                 </button>
 
                 <button
@@ -397,7 +378,7 @@ export const NotebookView = () => {
                   title={selectedNote.isPinned ? 'Unpin Note' : 'Pin Note'}
                 >
                   <Pin size={14} style={{ transform: selectedNote.isPinned ? 'rotate(45deg)' : 'none' }} />
-                  <span>{selectedNote.isPinned ? 'Pinned' : 'Pin'}</span>
+                  <span className="btn-label-desktop">{selectedNote.isPinned ? 'Pinned' : 'Pin'}</span>
                 </button>
 
                 <button
@@ -412,15 +393,7 @@ export const NotebookView = () => {
             </div>
 
             {/* Note Writing Surface */}
-            <div
-              style={{
-                flex: 1,
-                padding: '28px 36px',
-                display: 'flex',
-                flexDirection: 'column',
-                overflowY: 'auto'
-              }}
-            >
+            <div className="notebook-editor-body">
               {/* Date stamp */}
               <div
                 style={{
@@ -494,10 +467,20 @@ export const NotebookView = () => {
             <p style={{ fontSize: '0.86rem', color: '#94a3b8', marginBottom: '20px' }}>
               Choose a note from the left list or create a fresh one.
             </p>
-            <button onClick={handleCreateNewNote} className="btn btn-primary">
-              <SquarePen size={16} />
-              <span>Create New Note</span>
-            </button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="notebook-back-btn btn btn-secondary"
+                onClick={() => setMobileActiveView('list')}
+              >
+                <ChevronLeft size={16} />
+                <span>All Notes</span>
+              </button>
+              <button onClick={handleCreateNewNote} className="btn btn-primary">
+                <SquarePen size={16} />
+                <span>Create New Note</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

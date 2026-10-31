@@ -45,12 +45,13 @@ export const Header = () => {
 
   return (
     <header className="top-header no-print">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
         <button
-          className="btn btn-secondary btn-sm"
-          style={{ display: 'none' }}
+          className="mobile-menu-btn btn btn-secondary btn-sm"
           id="mobile-menu-trigger"
           onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open Navigation Menu"
+          title="Open Menu"
         >
           <Menu size={18} />
         </button>
@@ -66,10 +67,11 @@ export const Header = () => {
           <button
             className="btn btn-primary"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            style={{ padding: '9px 16px' }}
+            style={{ padding: '8px 14px' }}
           >
             <Plus size={16} />
-            <span>Create New</span>
+            <span className="btn-label-desktop">Create New</span>
+            <span className="btn-label-mobile">New</span>
           </button>
 
           {dropdownOpen && (

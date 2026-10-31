@@ -29,7 +29,7 @@ export const InvoicePrintView = () => {
       title={`Print ${isQuote ? 'Quotation' : 'Official Invoice'}`}
       size="xl"
       footer={
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Close
           </button>

@@ -26,6 +26,7 @@ export const LoginView = () => {
 
   return (
     <div
+      className="login-container"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -59,6 +60,7 @@ export const LoginView = () => {
       />
 
       <div
+        className="login-card"
         style={{
           width: '100%',
           maxWidth: '440px',

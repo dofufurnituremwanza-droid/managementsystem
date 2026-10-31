@@ -363,7 +363,7 @@ export const DashboardView = () => {
       )}
 
       {/* Main Split: Left Workshop Orders | Right Projects & Billing */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '24px' }}>
+      <div className="dashboard-split-grid">
         {/* Workshop Production Card */}
         <div className="card">
           <div

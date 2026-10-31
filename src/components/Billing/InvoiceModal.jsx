@@ -315,15 +315,7 @@ export const InvoiceModal = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {formData.items.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 90px 140px 120px 40px',
-                  gap: '10px',
-                  alignItems: 'center'
-                }}
-              >
+              <div key={idx} className="invoice-item-row">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {item.imageUrl ? (
                     <div

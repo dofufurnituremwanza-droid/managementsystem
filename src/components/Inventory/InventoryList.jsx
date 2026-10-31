@@ -95,6 +95,7 @@ export const InventoryList = () => {
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '8px',
           marginBottom: '20px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
