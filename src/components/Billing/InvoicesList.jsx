@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EmptyState } from '../Common/EmptyState';
+import confetti from 'canvas-confetti';
 import {
   FileText,
   Search,
@@ -9,11 +10,13 @@ import {
   Edit2,
   Trash2,
   CreditCard,
-  DollarSign
+  DollarSign,
+  CheckCircle2,
+  Check
 } from 'lucide-react';
 
 export const InvoicesList = () => {
-  const { invoices, setModalConfig, removeItem, editItem, formatMoney } = useApp();
+  const { invoices, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -48,6 +51,34 @@ export const InvoicesList = () => {
     }
   };
 
+  const handleMarkInvoicePaidInFull = async (invoice) => {
+    const total = Number(invoice.totalAmount) || 0;
+    const balance = Math.max(0, total - (Number(invoice.amountPaid) || 0));
+
+    const confirmed = window.confirm(
+      `Confirm Final Payment on Delivery for Invoice ${invoice.invoiceNumber}?\n\n` +
+      `Client: ${invoice.clientName}\n` +
+      `Remaining Balance to Settle: ${formatMoney(balance)}\n\n` +
+      `Click OK to mark as PAID IN FULL.`
+    );
+    if (!confirmed) return;
+
+    await editItem('invoices', invoice.id, {
+      amountPaid: total,
+      status: 'paid'
+    });
+
+    try {
+      confetti({
+        particleCount: 85,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+    } catch (e) {}
+
+    showToast(`Invoice ${invoice.invoiceNumber} marked as PAID IN FULL on delivery!`, 'success');
+  };
+
   const handleRecordQuickPayment = async (invoice) => {
     const balance = (Number(invoice.totalAmount) || 0) - (Number(invoice.amountPaid) || 0);
     const amountStr = window.prompt(
@@ -66,6 +97,12 @@ export const InvoicesList = () => {
       amountPaid: newPaid,
       status: isNowPaid ? 'paid' : 'partial'
     });
+
+    if (isNowPaid) {
+      try {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      } catch (e) {}
+    }
   };
 
   return (
@@ -245,14 +282,36 @@ export const InvoicesList = () => {
                     </td>
 
                     <td>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          color: balance <= 0 ? '#10b981' : '#f59e0b'
-                        }}
-                      >
-                        {balance <= 0 ? 'PAID IN FULL' : formatMoney(balance)}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {balance <= 0 && Number(inv.totalAmount) > 0 ? (
+                          <div className="payment-tick-badge paid-full">
+                            <CheckCircle2 size={13} />
+                            <span>PAID IN FULL ✓</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                color: '#f59e0b'
+                              }}
+                            >
+                              {formatMoney(balance)}
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-tick-settle"
+                              title="Customer finished remaining balance upon delivery? Click to mark Paid in Full"
+                              onClick={() => handleMarkInvoicePaidInFull(inv)}
+                            >
+                              <span className="tick-box">
+                                <Check size={12} strokeWidth={3} />
+                              </span>
+                              <span>Mark Paid Full</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
 
@@ -266,11 +325,11 @@ export const InvoicesList = () => {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <button
                           className="btn-outline-gold btn-sm"
-                          title="Print or Export to PDF"
+                          title="Download PDF or Print Document"
                           onClick={() => setModalConfig({ type: 'print_invoice', data: inv })}
                         >
                           <Printer size={13} />
-                          <span className="no-print">Print</span>
+                          <span className="no-print">PDF / Print</span>
                         </button>
 
                         {balance > 0 && (

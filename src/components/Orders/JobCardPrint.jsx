@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Printer, Download, X } from 'lucide-react';
-import { downloadReceiptHtml } from '../../utils/receiptDownloader';
+import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 
 export const JobCardPrint = () => {
-  const { modalConfig, setModalConfig, settings } = useApp();
+  const { modalConfig, setModalConfig, settings, showToast } = useApp();
+  const [isDownloading, setIsDownloading] = useState(false);
   const order = modalConfig.data;
 
   if (modalConfig.type !== 'print_job_card' || !order) return null;
@@ -14,8 +15,18 @@ export const JobCardPrint = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    downloadReceiptHtml(`DOFU_JobCard_${order.orderNumber}`, 'printable-job-card');
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    try {
+      const filename = `DOFU_JobCard_${order.orderNumber}_${(order.itemName || 'Item').replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      await downloadReceiptPdf(filename, 'printable-job-card');
+      showToast('PDF Job Card downloaded successfully!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error generating PDF, opening print.', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -29,9 +40,14 @@ export const JobCardPrint = () => {
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Close
           </button>
-          <button className="btn btn-outline-gold" onClick={handleDownload} title="Download offline Job Card">
+          <button
+            className="btn btn-outline-gold"
+            onClick={handleDownloadPdf}
+            disabled={isDownloading}
+            title="Download offline Job Card as PDF only"
+          >
             <Download size={16} />
-            <span>Download</span>
+            <span>{isDownloading ? 'Generating PDF...' : 'Download PDF Job Card'}</span>
           </button>
           <button className="btn btn-primary" onClick={handlePrint}>
             <Printer size={16} />

@@ -1,31 +1,97 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2 } from 'lucide-react';
-import { downloadReceiptHtml } from '../../utils/receiptDownloader';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail } from 'lucide-react';
+import { downloadReceiptPdf } from '../../utils/receiptDownloader';
+import confetti from 'canvas-confetti';
 
 export const OrderReceiptModal = () => {
-  const { modalConfig, setModalConfig, settings, formatMoney } = useApp();
+  const { modalConfig, setModalConfig, settings, formatMoney, editItem, showToast } = useApp();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const order = modalConfig.data;
 
   if (modalConfig.type !== 'order_receipt' || !order) return null;
+
+  const totalPrice = Number(order.totalPrice) || 0;
+  const depositPaid = Number(order.depositPaid) || 0;
+  const balance = Math.max(0, totalPrice - depositPaid);
+  const isFullyPaid = balance <= 0 && totalPrice > 0;
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    downloadReceiptHtml(`DOFU_Order_Receipt_${order.orderNumber}`, 'printable-order-receipt');
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    try {
+      const filename = `DOFU_Receipt_${order.orderNumber}_${(order.clientName || 'Client').replace(/\s+/g, '_')}`;
+      await downloadReceiptPdf(filename, 'printable-order-receipt');
+      showToast('PDF Receipt generated and downloaded successfully!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to generate PDF, opening print window.', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const balance = Math.max(0, (Number(order.totalPrice) || 0) - (Number(order.depositPaid) || 0));
-  const isFullyPaid = balance <= 0 && Number(order.depositPaid) > 0;
+  const handleMarkPaidInFull = async () => {
+    const remaining = Math.max(0, totalPrice - depositPaid);
+    const confirmed = window.confirm(
+      `Confirm Final Payment on Delivery for Order ${order.orderNumber}?\n\n` +
+      `Client: ${order.clientName}\n` +
+      `Item: ${order.itemName}\n` +
+      `Remaining Balance: ${formatMoney(remaining)}\n\n` +
+      `Click OK to mark as PAID IN FULL and update status to Delivered & Installed.`
+    );
+    if (!confirmed) return;
+
+    setIsUpdating(true);
+    try {
+      await editItem('orders', order.id, {
+        depositPaid: totalPrice,
+        status: 'delivered'
+      });
+
+      // Update in-modal data so the receipt updates in real-time
+      setModalConfig((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          depositPaid: totalPrice,
+          status: 'delivered'
+        }
+      }));
+
+      try {
+        confetti({
+          particleCount: 90,
+          spread: 80,
+          origin: { y: 0.5 }
+        });
+      } catch (e) {}
+
+      showToast(`Order ${order.orderNumber} settled! Marked as PAID IN FULL on delivery.`, 'success');
+    } catch (err) {
+      showToast(`Error updating order: ${err.message}`, 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const formattedDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('en-US', {
-        dateStyle: 'medium'
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       })
-    : new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
+    : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
 
   return (
     <Modal
@@ -34,223 +100,440 @@ export const OrderReceiptModal = () => {
       title={`Order & Payment Receipt (${order.orderNumber})`}
       size="lg"
       footer={
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
-            Done
-          </button>
-          <button className="btn btn-outline-gold" onClick={handleDownload} title="Download offline receipt">
-            <Download size={16} />
-            <span>Download Receipt</span>
-          </button>
-          <button className="btn btn-primary" onClick={handlePrint} title="Print or Save as PDF">
-            <Printer size={16} />
-            <span>Print Receipt</span>
-          </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            {!isFullyPaid && (
+              <button
+                type="button"
+                className="btn-tick-settle"
+                onClick={handleMarkPaidInFull}
+                disabled={isUpdating}
+                style={{ padding: '8px 14px', fontSize: '0.84rem' }}
+              >
+                <span className="tick-box" style={{ width: '18px', height: '18px' }}>
+                  <Check size={13} strokeWidth={3} />
+                </span>
+                <span>Mark Paid in Full on Delivery ✓</span>
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
+              Close
+            </button>
+            <button
+              className="btn btn-outline-gold"
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              title="Export official document to PDF file only"
+            >
+              <Download size={16} />
+              <span>{isDownloading ? 'Generating PDF...' : 'Download PDF Receipt'}</span>
+            </button>
+            <button className="btn btn-primary" onClick={handlePrint} title="Print Receipt">
+              <Printer size={16} />
+              <span>Print Receipt</span>
+            </button>
+          </div>
         </div>
       }
     >
-      <div className="print-document" id="printable-order-receipt">
-        {/* Receipt Header */}
+      {/* Interactive Settlement Banner if Customer Has Outstanding Balance */}
+      {!isFullyPaid && (
+        <div className="btn-tick-settle-modal" onClick={handleMarkPaidInFull} title="Click to settle remaining balance upon delivery">
+          <div className="tick-box-large">
+            <Check size={20} strokeWidth={3} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>CUSTOMER FINISHED PAYMENT ON DELIVERY?</span>
+              <span style={{ fontSize: '0.74rem', background: '#059669', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>
+                CLICK TO MARK PAID IN FULL ✓
+              </span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#d1fae5', marginTop: '2px' }}>
+              Outstanding Balance: <strong>{formatMoney(balance)}</strong>. Click this tick box to record full payment upon work delivery and stamp as PAID IN FULL.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* The Printable A4 Document Content */}
+      <div
+        className="print-document"
+        id="printable-order-receipt"
+        style={{
+          background: '#ffffff',
+          color: '#111827',
+          padding: '28px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif"
+        }}
+      >
+        {/* DOFU Brand Header */}
         <div
           style={{
-            textAlign: 'center',
-            borderBottom: '2px solid #111827',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            borderBottom: '2.5px solid #111827',
             paddingBottom: '16px',
-            marginBottom: '16px'
+            marginBottom: '18px'
           }}
         >
-          <img
-            src="/logo.png"
-            alt="DOFU Logo"
-            style={{ width: '64px', height: '64px', objectFit: 'contain', margin: '0 auto 8px', display: 'block' }}
-          />
-          <h2
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '1.5rem',
-              color: '#111827',
-              margin: '0 0 4px',
-              fontWeight: 800,
-              letterSpacing: '0.02em'
-            }}
-          >
-            DOFU FURNITURE MWANZA
-          </h2>
-          <div style={{ fontSize: '0.84rem', color: '#854d0e', margin: '0 0 6px', fontWeight: 700 }}>
-            OFFICIAL CUSTOM FURNITURE ORDER & PAYMENT RECEIPT
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <img
+              src="/logo.png"
+              alt="DOFU Logo"
+              style={{ width: '60px', height: '60px', objectFit: 'contain' }}
+            />
+            <div>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '1.45rem',
+                  color: '#111827',
+                  margin: 0,
+                  fontWeight: 900,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1.15
+                }}
+              >
+                DOFU FURNITURE MWANZA
+              </h1>
+              <div
+                style={{
+                  fontSize: '0.78rem',
+                  color: '#854d0e',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  margin: '3px 0'
+                }}
+              >
+                Custom Bespoke Furniture & Luxury Interior Architecture
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#4b5563', lineHeight: 1.4 }}>
+                <div>📍 <strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
+                <div>📞 <strong>PHONE:</strong> +255769456793 | ✉️ <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#374151', lineHeight: 1.45 }}>
-            <div><strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
-            <div><strong>PHONE:</strong> +255769456793 | <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
+
+          {/* Document Type Badge & Official Stamp */}
+          <div style={{ textAlign: 'right' }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '1.15rem',
+                fontWeight: 900,
+                color: '#111827',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
+              OFFICIAL RECEIPT
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.94rem',
+                fontWeight: 800,
+                color: '#c5a059',
+                marginTop: '2px'
+              }}
+            >
+              #{order.orderNumber}
+            </div>
+
+            {/* Visual Stamp Watermark */}
+            <div style={{ marginTop: '8px' }}>
+              {isFullyPaid ? (
+                <div className="receipt-official-stamp paid">
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em' }}>★ DOFU MWANZA ★</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 900, margin: '1px 0' }}>✓ PAID IN FULL</div>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700 }}>SETTLED ON DELIVERY</div>
+                </div>
+              ) : (
+                <div className="receipt-official-stamp partial">
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em' }}>★ DOFU MWANZA ★</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 900, margin: '1px 0' }}>PARTIAL DEPOSIT</div>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700 }}>BALANCE DUE ON DELIVERY</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Order & Client Meta */}
+        {/* Client & Production Metadata Card */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '14px',
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
+            gap: '16px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
             borderRadius: '6px',
             padding: '12px 16px',
             marginBottom: '18px',
-            fontSize: '0.84rem',
-            color: '#111827'
+            fontSize: '0.82rem',
+            color: '#1e293b'
           }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>
-              ORDER & RECEIPT REFERENCE
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: '0.04em' }}>
+              CLIENT INFORMATION
             </div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#111827', fontFamily: 'var(--font-mono)' }}>
-              {order.orderNumber}
+            <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0f172a', marginTop: '2px' }}>
+              {order.clientName || 'Valued Customer'}
             </div>
-            <div>Date Placed: {formattedDate}</div>
-            <div>Target Handover: <strong>{order.dueDate || 'Standard Production (14 Days)'}</strong></div>
+            <div style={{ marginTop: '2px' }}>
+              <strong>Phone:</strong> {order.clientPhone || 'Not provided'}
+            </div>
+            <div>
+              <strong>Order Date:</strong> {formattedDate}
+            </div>
           </div>
 
           <div>
-            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>
-              CLIENT INFORMATION
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: '0.04em' }}>
+              WORKSHOP & DELIVERY SPECIFICATIONS
             </div>
-            <div style={{ fontWeight: 700, fontSize: '0.96rem' }}>
-              {order.clientName}
+            <div style={{ marginTop: '2px' }}>
+              <strong>Target Handover / Delivery:</strong>{' '}
+              <span style={{ fontWeight: 700, color: '#b45309' }}>
+                {order.dueDate || 'Standard Bespoke Handcrafting (14 Days)'}
+              </span>
             </div>
-            {order.clientPhone && <div>Phone: {order.clientPhone}</div>}
-            <div>Status: <strong style={{ textTransform: 'uppercase' }}>{order.status || 'Active Order'}</strong></div>
+            <div>
+              <strong>Lead Craftsman:</strong> {order.assignedTo || 'DOFU Workshop Master Carpenter'}
+            </div>
+            <div>
+              <strong>Production Phase:</strong>{' '}
+              <span style={{ textTransform: 'uppercase', fontWeight: 700, color: '#0f172a' }}>
+                {order.status || 'Active Production'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Ordered Furniture Piece Details */}
+        {/* Ordered Custom Piece Specifications (ALL Entered Data Displayed Perfectly) */}
         <div style={{ marginBottom: '18px' }}>
-          <h4
+          <div
             style={{
-              fontSize: '0.84rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
               textTransform: 'uppercase',
-              color: '#374151',
+              color: '#475569',
               letterSpacing: '0.05em',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid #e2e8f0',
               paddingBottom: '4px',
-              marginBottom: '10px'
+              marginBottom: '10px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
             }}
           >
-            ORDERED FURNITURE SPECIFICATIONS
-          </h4>
+            <span>BESPOKE FURNITURE SPECIFICATIONS</span>
+            <span style={{ fontSize: '0.72rem', color: '#b45309' }}>100% Custom Made-to-Order</span>
+          </div>
 
           <div
             style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '12px 14px',
+              background: '#ffffff',
               display: 'flex',
               gap: '16px',
-              alignItems: 'center',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              padding: '12px',
-              background: '#fff',
-              marginBottom: '12px'
+              alignItems: 'flex-start'
             }}
           >
+            {/* Attached Reference Photo */}
             {order.imageUrl && (
               <div
                 style={{
-                  width: '90px',
-                  height: '80px',
+                  width: '110px',
+                  height: '100px',
                   borderRadius: '6px',
                   overflow: 'hidden',
-                  border: '1px solid #d1d5db',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#f9fafb'
+                  justifyContent: 'center'
                 }}
               >
                 <img
                   src={order.imageUrl}
-                  alt="Product Reference"
+                  alt="Product Reference Photo"
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               </div>
             )}
 
-            <div style={{ flex: 1, fontSize: '0.84rem', color: '#111827' }}>
-              <div style={{ fontWeight: 800, fontSize: '1rem', color: '#111827' }}>
+            {/* Spec Details Grid */}
+            <div style={{ flex: 1, fontSize: '0.82rem', color: '#1e293b' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.02rem', color: '#0f172a', marginBottom: '4px' }}>
                 {order.itemName} {order.quantity > 1 ? `(Qty: ${order.quantity})` : ''}
               </div>
-              <div style={{ color: '#854d0e', fontWeight: 600, marginTop: '2px' }}>
-                🪵 Wood: {order.woodType || 'Hardwood Timber'}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 14px' }}>
+                <div>
+                  <span style={{ color: '#64748b' }}>🪵 Timber Species:</span>{' '}
+                  <strong style={{ color: '#854d0e' }}>{order.woodType || 'Hardwood Timber'}</strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b' }}>🏷️ Category:</span>{' '}
+                  <strong>{order.category || 'Custom Furniture'}</strong>
+                </div>
+
+                {order.dimensions && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>📐 Dimensions:</span>{' '}
+                    <strong style={{ fontFamily: 'var(--font-mono)' }}>{order.dimensions}</strong>
+                  </div>
+                )}
+
+                {order.fabric && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>🧵 Fabric / Leather:</span>{' '}
+                    <strong>{order.fabric}</strong>
+                  </div>
+                )}
+
+                {order.finishType && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#64748b' }}>🎨 Stain & Finish:</span>{' '}
+                    <strong>{order.finishType}</strong>
+                  </div>
+                )}
+
+                {order.notes && (
+                  <div
+                    style={{
+                      gridColumn: 'span 2',
+                      marginTop: '4px',
+                      padding: '6px 10px',
+                      background: '#f8fafc',
+                      borderRadius: '4px',
+                      borderLeft: '3px solid #c5a059'
+                    }}
+                  >
+                    <span style={{ color: '#64748b', fontWeight: 700 }}>Custom Carving / Notes:</span>{' '}
+                    <span style={{ color: '#334155' }}>{order.notes}</span>
+                  </div>
+                )}
               </div>
-              {order.dimensions && <div>📐 Dimensions: {order.dimensions}</div>}
-              {order.fabric && <div>🧵 Fabric/Leather: {order.fabric}</div>}
-              {order.finishType && <div>🎨 Finish: {order.finishType}</div>}
             </div>
           </div>
         </div>
 
-        {/* Payment & Deposit Summary */}
+        {/* Financial & Settlement Breakdown */}
         <div
           style={{
-            borderTop: '2px solid #111827',
+            borderTop: '2px solid #0f172a',
             paddingTop: '12px',
             marginBottom: '18px',
-            fontSize: '0.88rem',
-            color: '#111827'
+            fontSize: '0.86rem',
+            color: '#0f172a'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span>Total Agreed Order Value:</span>
-            <span style={{ fontWeight: 700 }}>{formatMoney(order.totalPrice)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
+            <span style={{ color: '#475569' }}>Agreed Total Order Value:</span>
+            <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}>{formatMoney(totalPrice)}</strong>
           </div>
 
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
-              marginBottom: '6px',
-              fontSize: '1.05rem',
-              fontWeight: 800,
-              color: '#059669',
+              padding: '6px 10px',
               background: '#ecfdf5',
-              padding: '8px 10px',
-              borderRadius: '6px'
+              borderRadius: '6px',
+              margin: '6px 0',
+              fontWeight: 800,
+              fontSize: '0.98rem',
+              color: '#059669'
             }}
           >
-            <span>DEPOSIT / PAYMENT RECEIVED:</span>
-            <span>{formatMoney(order.depositPaid)}</span>
+            <span>DEPOSIT / AMOUNT RECEIVED:</span>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(depositPaid)}</span>
           </div>
 
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
-              fontWeight: 700,
-              fontSize: '0.94rem',
-              padding: '4px 10px',
-              color: balance <= 0 ? '#059669' : '#dc2626'
+              padding: '8px 10px',
+              background: balance <= 0 ? '#ecfdf5' : '#fef2f2',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '1rem',
+              color: balance <= 0 ? '#047857' : '#b91c1c'
             }}
           >
-            <span>{balance <= 0 ? 'STATUS:' : 'BALANCE REMAINING ON DELIVERY:'}</span>
-            <span>{balance <= 0 ? '✓ FULLY PAID' : formatMoney(balance)}</span>
+            <span>{balance <= 0 ? 'PAYMENT STATUS:' : 'BALANCE REMAINING ON DELIVERY:'}</span>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>
+              {balance <= 0 ? '✓ PAID IN FULL (0 TZS)' : formatMoney(balance)}
+            </span>
           </div>
         </div>
 
-        {/* Official Terms & Workshop Guarantee */}
+        {/* Dual Signature Blocks (Customer & DOFU) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '30px',
+            marginTop: '26px',
+            paddingTop: '12px',
+            borderTop: '1px dashed #cbd5e1',
+            color: '#334155',
+            fontSize: '0.78rem'
+          }}
+        >
+          <div>
+            <div style={{ height: '36px' }} />
+            <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px' }}>
+              <strong>Client Acceptance & Handover Signature:</strong>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '2px' }}>
+                Date Received: ____________________
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ height: '36px' }} />
+            <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px' }}>
+              <strong>DOFU Furniture Mwanza Authorized Signature:</strong>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '2px' }}>
+                Official Workshop Stamp & Sign
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Official Workshop Footer */}
         <div
           style={{
             textAlign: 'center',
-            fontSize: '0.78rem',
-            color: '#6b7280',
-            borderTop: '1px dashed #d1d5db',
-            paddingTop: '12px'
+            fontSize: '0.74rem',
+            color: '#64748b',
+            borderTop: '1px solid #e2e8f0',
+            marginTop: '18px',
+            paddingTop: '10px',
+            lineHeight: 1.45
           }}
         >
-          <p style={{ fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
-            Thank you for trusting DOFU FURNITURE MWANZA with your custom furniture!
-          </p>
-          <p style={{ margin: 0 }}>
-            LOCATION: BUGARIKA SOKON, BUGANDO, MWANZA | PHONE: +255769456793
-          </p>
+          <div style={{ fontWeight: 700, color: '#0f172a' }}>
+            Thank you for choosing DOFU FURNITURE MWANZA for your custom furniture.
+          </div>
+          <div>All pieces are bespoke crafted at our Bugarika Sokon, Bugando workshop in Mwanza.</div>
         </div>
       </div>
     </Modal>

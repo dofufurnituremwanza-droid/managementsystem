@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Printer, Download, CheckCircle2 } from 'lucide-react';
-import { downloadReceiptHtml } from '../../utils/receiptDownloader';
+import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 
 export const SaleReceiptModal = () => {
   const { modalConfig, setModalConfig, settings, formatMoney } = useApp();
@@ -15,7 +15,7 @@ export const SaleReceiptModal = () => {
   };
 
   const handleDownload = () => {
-    downloadReceiptHtml(`DOFU_Receipt_${sale.receiptNumber}`, 'printable-sale-receipt');
+    downloadReceiptPdf(`DOFU_Receipt_${sale.receiptNumber}`, 'printable-sale-receipt');
   };
 
   const formattedDate = sale.saleDate

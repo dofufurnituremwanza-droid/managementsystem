@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EmptyState } from '../Common/EmptyState';
+import confetti from 'canvas-confetti';
 import {
   Armchair,
   Search,
@@ -11,13 +12,14 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  Check,
   AlertCircle,
   Receipt,
   X
 } from 'lucide-react';
 
 export const OrdersList = () => {
-  const { orders, setModalConfig, removeItem, editItem, formatMoney } = useApp();
+  const { orders, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [previewImage, setPreviewImage] = useState(null);
@@ -35,6 +37,36 @@ export const OrdersList = () => {
 
   const handleQuickStatusChange = async (id, newStatus) => {
     await editItem('orders', id, { status: newStatus });
+  };
+
+  const handleMarkPaidInFull = async (order) => {
+    const total = Number(order.totalPrice) || 0;
+    const currentPaid = Number(order.depositPaid) || 0;
+    const remaining = Math.max(0, total - currentPaid);
+
+    const confirmed = window.confirm(
+      `Confirm Final Payment on Delivery for Order ${order.orderNumber}?\n\n` +
+      `Client: ${order.clientName}\n` +
+      `Item: ${order.itemName}\n` +
+      `Remaining Balance: ${formatMoney(remaining)}\n\n` +
+      `Click OK to mark as PAID IN FULL and update status to Delivered & Installed.`
+    );
+    if (!confirmed) return;
+
+    await editItem('orders', order.id, {
+      depositPaid: total,
+      status: 'delivered'
+    });
+
+    try {
+      confetti({
+        particleCount: 85,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+    } catch (e) {}
+
+    showToast(`Order ${order.orderNumber} marked as PAID IN FULL on delivery!`, 'success');
   };
 
   const handleDelete = (id, num) => {
@@ -209,16 +241,37 @@ export const OrdersList = () => {
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>
-                        {formatMoney(order.totalPrice)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.74rem',
-                          color: balance <= 0 ? '#10b981' : '#f59e0b'
-                        }}
-                      >
-                        {balance <= 0 ? 'Fully Paid' : `Bal: ${formatMoney(balance)}`}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem' }}>
+                          {formatMoney(order.totalPrice)}
+                        </div>
+
+                        {balance <= 0 && Number(order.totalPrice) > 0 ? (
+                          <div className="payment-tick-badge paid-full">
+                            <CheckCircle2 size={13} />
+                            <span>PAID IN FULL ✓</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: '0.74rem', color: '#f59e0b', fontWeight: 600 }}>
+                              Deposit: {formatMoney(order.depositPaid || 0)}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#ef4444', fontWeight: 700 }}>
+                              Balance: {formatMoney(balance)}
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-tick-settle"
+                              title="Customer finished remaining balance upon delivery? Click to mark Paid in Full"
+                              onClick={() => handleMarkPaidInFull(order)}
+                            >
+                              <span className="tick-box">
+                                <Check size={12} strokeWidth={3} />
+                              </span>
+                              <span>Mark Paid Full</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
 
@@ -241,16 +294,16 @@ export const OrdersList = () => {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <button
                           className="btn-outline-gold btn-sm"
-                          title="Download / Print Order & Payment Receipt"
+                          title="Download PDF Order & Payment Receipt"
                           onClick={() => setModalConfig({ type: 'order_receipt', data: order })}
                         >
                           <Receipt size={13} />
-                          <span className="no-print">Receipt</span>
+                          <span className="no-print">PDF Receipt</span>
                         </button>
 
                         <button
                           className="btn-secondary btn-sm"
-                          title="Print Workshop Job Card & Cutting Sheet"
+                          title="Print or Export Workshop Job Card PDF"
                           onClick={() => setModalConfig({ type: 'print_job_card', data: order })}
                         >
                           <Printer size={13} />
