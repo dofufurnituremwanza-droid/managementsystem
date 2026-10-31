@@ -26,7 +26,6 @@ export const SettingsView = () => {
     clients,
     orders,
     projects,
-    inventory,
     invoices,
     expenses
   } = useApp();
@@ -50,7 +49,6 @@ export const SettingsView = () => {
       clients,
       orders,
       projects,
-      inventory,
       invoices,
       expenses,
       settings
@@ -246,7 +244,7 @@ export const SettingsView = () => {
               Full Offline JSON Data Backup
             </h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
-              Download a complete JSON snapshot containing all your clients, furniture orders, interior projects, invoices, and inventory.
+              Download a complete JSON snapshot containing all your clients, custom furniture orders, interior design projects, quotations, invoices, and workshop expenses.
             </p>
           </div>
 

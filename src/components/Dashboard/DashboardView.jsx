@@ -25,7 +25,6 @@ export const DashboardView = () => {
     projects,
     invoices,
     expenses,
-    inventory,
     notes,
     setActiveTab,
     setModalConfig,
@@ -54,10 +53,6 @@ export const DashboardView = () => {
 
   const activeProjects = projects.filter(
     (p) => p.stage !== 'completed' && p.stage !== 'cancelled'
-  );
-
-  const lowStockItems = inventory.filter(
-    (i) => (Number(i.quantity) || 0) <= (Number(i.minAlertLevel) || 5)
   );
 
   const isBrandNewSystem =

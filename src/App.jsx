@@ -12,7 +12,6 @@ import { OrdersList } from './components/Orders/OrdersList';
 import { ProjectsList } from './components/Projects/ProjectsList';
 import { ClientsList } from './components/Clients/ClientsList';
 import { InvoicesList } from './components/Billing/InvoicesList';
-import { InventoryList } from './components/Inventory/InventoryList';
 import { ExpensesList } from './components/Expenses/ExpensesList';
 import { SettingsView } from './components/Settings/SettingsView';
 
@@ -24,9 +23,6 @@ import { ProjectModal } from './components/Projects/ProjectModal';
 import { ClientModal } from './components/Clients/ClientModal';
 import { InvoiceModal } from './components/Billing/InvoiceModal';
 import { InvoicePrintView } from './components/Billing/InvoicePrintView';
-import { InventoryModal } from './components/Inventory/InventoryModal';
-import { MakeSaleModal } from './components/Inventory/MakeSaleModal';
-import { SaleReceiptModal } from './components/Inventory/SaleReceiptModal';
 import { ExpenseModal } from './components/Expenses/ExpenseModal';
 import { FirebaseConfigModal } from './components/Settings/FirebaseConfigModal';
 
@@ -47,7 +43,6 @@ const MainLayout = () => {
           {activeTab === 'projects' && <ProjectsList />}
           {activeTab === 'clients' && <ClientsList />}
           {activeTab === 'billing' && <InvoicesList />}
-          {activeTab === 'inventory' && <InventoryList />}
           {activeTab === 'expenses' && <ExpensesList />}
           {activeTab === 'settings' && <SettingsView />}
         </div>
@@ -61,9 +56,6 @@ const MainLayout = () => {
       <ClientModal />
       <InvoiceModal />
       <InvoicePrintView />
-      <InventoryModal />
-      <MakeSaleModal />
-      <SaleReceiptModal />
       <ExpenseModal />
       <FirebaseConfigModal />
 

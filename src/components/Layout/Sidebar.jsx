@@ -7,7 +7,6 @@ import {
   Compass,
   Users,
   FileText,
-  Boxes,
   Receipt,
   Settings,
   Database,
@@ -58,7 +57,7 @@ export const Sidebar = () => {
     },
     {
       id: 'orders',
-      label: 'Furniture Orders',
+      label: 'Customer Orders',
       icon: Armchair,
       badge: pendingOrders > 0 ? pendingOrders : null
     },
@@ -80,7 +79,6 @@ export const Sidebar = () => {
       icon: FileText,
       badge: unpaidInvoices > 0 ? unpaidInvoices : null
     },
-    { id: 'inventory', label: 'Stock & Sales', icon: Boxes },
     { id: 'expenses', label: 'Workshop Expenses', icon: Receipt },
     { id: 'settings', label: 'Settings & Cloud', icon: Settings }
   ];

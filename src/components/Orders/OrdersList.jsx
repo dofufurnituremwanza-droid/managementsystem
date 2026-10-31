@@ -79,16 +79,16 @@ export const OrdersList = () => {
           onClick={() => setModalConfig({ type: 'new_order' })}
         >
           <Plus size={16} />
-          <span>New Furniture Order</span>
+          <span>Take Custom Order</span>
         </button>
       </div>
 
       {orders.length === 0 ? (
         <EmptyState
           icon={Armchair}
-          title="No Furniture Orders in Production"
-          description="Stop writing customer furniture specs in fragile paper notebooks. Record client dimensions, timber choice, fabric, and assigned carpenters here."
-          actionLabel="Create First Order"
+          title="No Custom Orders in Production"
+          description="Take bespoke custom orders from your customers. Attach reference photos, record exact dimensions, timber species, fabric choice, and track production until delivery."
+          actionLabel="Take First Customer Order"
           onAction={() => setModalConfig({ type: 'new_order' })}
         />
       ) : filtered.length === 0 ? (

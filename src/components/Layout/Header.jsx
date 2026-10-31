@@ -8,7 +8,6 @@ import {
   Compass,
   FileText,
   UserPlus,
-  Boxes,
   Receipt,
   Database
 } from 'lucide-react';
@@ -20,7 +19,6 @@ const TAB_META = {
   projects: { title: 'Interior Design Projects', subtitle: 'Moodboards, room specs, site measurements & stages' },
   clients: { title: 'Clients Directory', subtitle: 'Client records, order history & site locations' },
   billing: { title: 'Quotations & Invoices', subtitle: 'Create proforma quotes, tax invoices & record payments' },
-  inventory: { title: 'Materials & Furniture Stock', subtitle: 'Hardwood timber, fabrics, hardware & finished pieces' },
   expenses: { title: 'Workshop Expenses', subtitle: 'Material supplies, artisan wages, transport & overheads' },
   settings: { title: 'Settings & Cloud Database', subtitle: 'Firebase connection, business profile & printable terms' }
 };
@@ -111,7 +109,7 @@ export const Header = () => {
                 }}
               >
                 <Armchair size={16} color="#c5a059" />
-                <span>Furniture Order</span>
+                <span>Take Customer Order</span>
               </button>
 
               <button
@@ -145,17 +143,6 @@ export const Header = () => {
               >
                 <UserPlus size={16} color="#c5a059" />
                 <span>Client Record</span>
-              </button>
-
-              <button
-                className="nav-btn"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setModalConfig({ type: 'new_inventory' });
-                }}
-              >
-                <Boxes size={16} color="#c5a059" />
-                <span>Stock / Material</span>
               </button>
 
               <button
