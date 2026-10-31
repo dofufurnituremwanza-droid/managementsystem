@@ -17,7 +17,6 @@ import { ExpensesList } from './components/Expenses/ExpensesList';
 import { SettingsView } from './components/Settings/SettingsView';
 
 // Modals
-import { NoteModal } from './components/Notebook/NoteModal';
 import { OrderModal } from './components/Orders/OrderModal';
 import { JobCardPrint } from './components/Orders/JobCardPrint';
 import { ProjectModal } from './components/Projects/ProjectModal';
@@ -52,7 +51,6 @@ const MainLayout = () => {
       </main>
 
       {/* Global Modals & Overlays */}
-      <NoteModal />
       <OrderModal />
       <JobCardPrint />
       <ProjectModal />

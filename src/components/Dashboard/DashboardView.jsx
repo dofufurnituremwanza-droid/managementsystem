@@ -297,21 +297,13 @@ export const DashboardView = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="btn btn-outline-gold btn-sm"
-                onClick={() => setModalConfig({ type: 'new_note' })}
-              >
-                <Plus size={13} /> Quick Note
-              </button>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setActiveTab('notebook')}
-              >
-                <span>Open Notebook</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setActiveTab('notebook')}
+            >
+              <span>Open Notebook</span>
+              <ArrowRight size={13} />
+            </button>
           </div>
 
           <div

@@ -26,7 +26,7 @@ const TAB_META = {
 };
 
 export const Header = () => {
-  const { activeTab, setMobileMenuOpen, setModalConfig, firebaseState } = useApp();
+  const { activeTab, setActiveTab, setMobileMenuOpen, setModalConfig, firebaseState } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -94,11 +94,11 @@ export const Header = () => {
                 className="nav-btn"
                 onClick={() => {
                   setDropdownOpen(false);
-                  setModalConfig({ type: 'new_note' });
+                  setActiveTab('notebook');
                 }}
               >
                 <BookOpen size={16} color="#c5a059" />
-                <span>Write Note / Reminder</span>
+                <span>DOFU's Notebook</span>
               </button>
 
               <button
