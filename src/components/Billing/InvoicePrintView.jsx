@@ -3,6 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Printer, Download, CheckCircle2 } from 'lucide-react';
 
+import { downloadReceiptHtml } from '../../utils/receiptDownloader';
+
 export const InvoicePrintView = () => {
   const { modalConfig, setModalConfig, settings, formatMoney } = useApp();
   const invoice = modalConfig.data;
@@ -16,6 +18,10 @@ export const InvoicePrintView = () => {
     window.print();
   };
 
+  const handleDownload = () => {
+    downloadReceiptHtml(`DOFU_${isQuote ? 'Quote' : 'Invoice'}_${invoice.invoiceNumber}`, 'printable-invoice');
+  };
+
   return (
     <Modal
       isOpen={true}
@@ -26,6 +32,10 @@ export const InvoicePrintView = () => {
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Close
+          </button>
+          <button className="btn btn-outline-gold" onClick={handleDownload} title="Download offline copy">
+            <Download size={16} />
+            <span>Download</span>
           </button>
           <button className="btn btn-primary" onClick={handlePrint}>
             <Printer size={16} />

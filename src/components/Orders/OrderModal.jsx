@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { ImageUploader } from '../Common/ImageUploader';
+import confetti from 'canvas-confetti';
 
 export const OrderModal = () => {
   const { modalConfig, setModalConfig, clients, addItem, editItem } = useApp();
@@ -119,12 +120,21 @@ export const OrderModal = () => {
     e.preventDefault();
     if (!formData.itemName.trim() || !formData.clientName.trim()) return;
 
+    let savedRecord = null;
     if (isEditing) {
-      await editItem('orders', existing.id, formData);
+      savedRecord = await editItem('orders', existing.id, formData);
     } else {
-      await addItem('orders', formData);
+      savedRecord = await addItem('orders', formData);
+      try {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      } catch (err) {}
     }
-    setModalConfig({ type: null });
+
+    // Automatically open Order & Deposit Payment Receipt for download and print
+    setModalConfig({
+      type: 'order_receipt',
+      data: { ...formData, id: savedRecord?.id || existing.id }
+    });
   };
 
   return (

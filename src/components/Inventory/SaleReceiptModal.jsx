@@ -1,7 +1,8 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Printer, Download, CheckCircle2 } from 'lucide-react';
+import { downloadReceiptHtml } from '../../utils/receiptDownloader';
 
 export const SaleReceiptModal = () => {
   const { modalConfig, setModalConfig, settings, formatMoney } = useApp();
@@ -11,6 +12,10 @@ export const SaleReceiptModal = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = () => {
+    downloadReceiptHtml(`DOFU_Receipt_${sale.receiptNumber}`, 'printable-sale-receipt');
   };
 
   const formattedDate = sale.saleDate
@@ -31,7 +36,11 @@ export const SaleReceiptModal = () => {
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Done
           </button>
-          <button className="btn btn-primary" onClick={handlePrint}>
+          <button className="btn btn-outline-gold" onClick={handleDownload} title="Download offline receipt file">
+            <Download size={16} />
+            <span>Download Receipt</span>
+          </button>
+          <button className="btn btn-primary" onClick={handlePrint} title="Print or Save as PDF">
             <Printer size={16} />
             <span>Print Receipt</span>
           </button>
@@ -51,24 +60,26 @@ export const SaleReceiptModal = () => {
           <img
             src="/logo.png"
             alt="DOFU Logo"
-            style={{ width: '56px', height: '56px', objectFit: 'contain', margin: '0 auto 8px' }}
+            style={{ width: '64px', height: '64px', objectFit: 'contain', margin: '0 auto 8px', display: 'block' }}
           />
           <h2
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '1.4rem',
+              fontSize: '1.45rem',
               color: '#111827',
-              margin: 0,
-              fontWeight: 800
+              margin: '0 0 4px',
+              fontWeight: 800,
+              letterSpacing: '0.02em'
             }}
           >
-            {settings.businessName}
+            DOFU FURNITURE MWANZA
           </h2>
-          <div style={{ fontSize: '0.8rem', color: '#4b5563', margin: '2px 0' }}>
-            SHOWROOM SALES RECEIPT / CASH SALE
+          <div style={{ fontSize: '0.84rem', color: '#854d0e', margin: '0 0 6px', fontWeight: 700 }}>
+            OFFICIAL SHOWROOM SALES RECEIPT / CASH SALE
           </div>
-          <div style={{ fontSize: '0.76rem', color: '#6b7280' }}>
-            {settings.address} | Phone: {settings.phone}
+          <div style={{ fontSize: '0.78rem', color: '#374151', lineHeight: 1.45 }}>
+            <div><strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
+            <div><strong>PHONE:</strong> +255769456793 | <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
           </div>
         </div>
 
@@ -89,7 +100,7 @@ export const SaleReceiptModal = () => {
               Receipt #: <strong style={{ fontFamily: 'var(--font-mono)' }}>{sale.receiptNumber}</strong>
             </div>
             <div>Date & Time: {formattedDate}</div>
-            <div>Cashier / Staff: DOFU Showroom</div>
+            <div>Branch: Main Showroom (Mwanza)</div>
           </div>
 
           <div style={{ textAlign: 'right' }}>
@@ -97,7 +108,7 @@ export const SaleReceiptModal = () => {
               Client: <strong>{sale.clientName || 'Walk-in Customer'}</strong>
             </div>
             {sale.clientPhone && <div>Phone: {sale.clientPhone}</div>}
-            <div>Payment: {sale.paymentMethod || 'Cash'}</div>
+            <div>Payment: <strong>{sale.paymentMethod || 'Cash'}</strong></div>
           </div>
         </div>
 
@@ -234,11 +245,11 @@ export const SaleReceiptModal = () => {
             paddingTop: '12px'
           }}
         >
-          <p style={{ fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>
-            Thank you for purchasing with DOFU Furniture & Interior Design!
+          <p style={{ fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+            Thank you for buying from DOFU FURNITURE MWANZA!
           </p>
           <p style={{ margin: 0 }}>
-            Crafted with passion in Mwanza, Tanzania.
+            LOCATION: BUGARIKA SOKON, BUGANDO, MWANZA | PHONE: +255769456793
           </p>
         </div>
       </div>

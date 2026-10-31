@@ -12,6 +12,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Receipt,
   X
 } from 'lucide-react';
 
@@ -240,6 +241,15 @@ export const OrdersList = () => {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <button
                           className="btn-outline-gold btn-sm"
+                          title="Download / Print Order & Payment Receipt"
+                          onClick={() => setModalConfig({ type: 'order_receipt', data: order })}
+                        >
+                          <Receipt size={13} />
+                          <span className="no-print">Receipt</span>
+                        </button>
+
+                        <button
+                          className="btn-secondary btn-sm"
                           title="Print Workshop Job Card & Cutting Sheet"
                           onClick={() => setModalConfig({ type: 'print_job_card', data: order })}
                         >

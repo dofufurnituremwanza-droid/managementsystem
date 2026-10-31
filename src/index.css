@@ -841,6 +841,7 @@ body {
   .no-print,
   .toolbar,
   .btn,
+  .modal-header,
   .modal-footer,
   .modal-close-btn {
     display: none !important;
@@ -868,12 +869,20 @@ body {
     background: #fff !important;
     box-shadow: none !important;
     color: #111827 !important;
+    padding: 0 !important;
+  }
+
+  .modal-body {
+    padding: 0 !important;
+    overflow: visible !important;
   }
 
   .print-document {
-    padding: 20mm;
+    padding: 10mm 15mm;
     color: #111827 !important;
     background: #fff !important;
+    margin: 0 auto;
+    max-width: 100% !important;
   }
 }
 

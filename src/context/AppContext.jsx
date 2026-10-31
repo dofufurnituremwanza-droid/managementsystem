@@ -18,16 +18,16 @@ import {
 const AppContext = createContext();
 
 const DEFAULT_SETTINGS = {
-  businessName: 'DOFU Furniture & Interior Design',
+  businessName: 'DOFU FURNITURE MWANZA',
   tagline: 'Custom Bespoke Furniture & Luxury Interior Architecture',
-  email: 'info@dofudesigns.com',
-  phone: '+255 700 000 000',
-  address: 'Showroom & Workshop: Plot 42, Industrial & Design Ave',
+  email: 'dofufurnituremwanza@gmail.com',
+  phone: '+255769456793',
+  address: 'BUGARIKA SOKON, BUGANDO, MWANZA',
   currency: 'TZS',
   currencySymbol: 'TSh',
   taxRate: 0,
-  paymentDetails: 'Bank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE & INTERIOR DESIGN\nAccount No: 0150XXXXXXXX\nM-Pesa / TigoPesa Lipa Namba: 5522114',
-  terms: '1. 50% commitment deposit required before production begins.\n2. 30% payment upon production completion before delivery.\n3. 20% balance upon final site inspection and installation handover.\n4. Custom furniture orders cannot be cancelled once wood cutting and timber sizing commences.'
+  paymentDetails: 'M-Pesa / Tigo Pesa: +255 769 456 793\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA',
+  terms: '1. 50% commitment deposit required before production begins.\n2. Balance upon final inspection & delivery.\n3. Custom furniture crafted with premium Tanzanian hardwoods.'
 };
 
 export const AppProvider = ({ children }) => {
@@ -45,11 +45,22 @@ export const AppProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
   const [notes, setNotes] = useState([]);
   
-  // Settings
+  // Settings with DOFU Mwanza details
   const [settings, setSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('dofu_settings');
-      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          phone: parsed.phone && parsed.phone !== '+255 700 000 000' ? parsed.phone : '+255769456793',
+          address: parsed.address && !parsed.address.includes('Plot 42') ? parsed.address : 'BUGARIKA SOKON, BUGANDO, MWANZA',
+          businessName: parsed.businessName && !parsed.businessName.includes('Plot 42') ? parsed.businessName : 'DOFU FURNITURE MWANZA',
+          email: parsed.email && !parsed.email.includes('dofudesigns') ? parsed.email : 'dofufurnituremwanza@gmail.com'
+        };
+      }
+      return DEFAULT_SETTINGS;
     } catch {
       return DEFAULT_SETTINGS;
     }

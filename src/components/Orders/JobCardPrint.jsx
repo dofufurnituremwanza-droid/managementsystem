@@ -1,7 +1,8 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, X } from 'lucide-react';
+import { Printer, Download, X } from 'lucide-react';
+import { downloadReceiptHtml } from '../../utils/receiptDownloader';
 
 export const JobCardPrint = () => {
   const { modalConfig, setModalConfig, settings } = useApp();
@@ -11,6 +12,10 @@ export const JobCardPrint = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = () => {
+    downloadReceiptHtml(`DOFU_JobCard_${order.orderNumber}`, 'printable-job-card');
   };
 
   return (
@@ -23,6 +28,10 @@ export const JobCardPrint = () => {
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
             Close
+          </button>
+          <button className="btn btn-outline-gold" onClick={handleDownload} title="Download offline Job Card">
+            <Download size={16} />
+            <span>Download</span>
           </button>
           <button className="btn btn-primary" onClick={handlePrint}>
             <Printer size={16} />

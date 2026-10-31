@@ -33,6 +33,10 @@ export const SettingsView = () => {
 
   const [formData, setFormData] = useState({ ...settings });
 
+  React.useEffect(() => {
+    setFormData({ ...settings });
+  }, [settings]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettings(formData);

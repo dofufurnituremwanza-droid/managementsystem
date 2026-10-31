@@ -19,6 +19,7 @@ import { SettingsView } from './components/Settings/SettingsView';
 // Modals
 import { OrderModal } from './components/Orders/OrderModal';
 import { JobCardPrint } from './components/Orders/JobCardPrint';
+import { OrderReceiptModal } from './components/Orders/OrderReceiptModal';
 import { ProjectModal } from './components/Projects/ProjectModal';
 import { ClientModal } from './components/Clients/ClientModal';
 import { InvoiceModal } from './components/Billing/InvoiceModal';
@@ -55,6 +56,7 @@ const MainLayout = () => {
       {/* Global Modals & Overlays */}
       <OrderModal />
       <JobCardPrint />
+      <OrderReceiptModal />
       <ProjectModal />
       <ClientModal />
       <InvoiceModal />
