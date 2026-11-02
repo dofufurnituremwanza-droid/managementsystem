@@ -26,13 +26,13 @@ export const MakeSaleModal = () => {
 
   const [selectedItemId, setSelectedItemId] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [unitPrice, setUnitPrice] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentStatus, setPaymentStatus] = useState('paid'); // paid, partial, unpaid
-  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountPaid, setAmountPaid] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,15 +42,15 @@ export const MakeSaleModal = () => {
       const activeItem = preselectedItem || availableInventory[0] || null;
       if (activeItem) {
         setSelectedItemId(activeItem.id);
-        setUnitPrice(Number(activeItem.sellingPrice) || 0);
+        const p = Number(activeItem.sellingPrice) || 0;
+        setUnitPrice(p > 0 ? p : '');
         setQuantity(1);
-        const total = (Number(activeItem.sellingPrice) || 0) * 1;
-        setAmountPaid(total);
+        setAmountPaid(p > 0 ? p : '');
       } else {
         setSelectedItemId('');
-        setUnitPrice(0);
+        setUnitPrice('');
         setQuantity(1);
-        setAmountPaid(0);
+        setAmountPaid('');
       }
       setClientId('');
       setClientName('');
@@ -65,17 +65,20 @@ export const MakeSaleModal = () => {
 
   const currentItem = inventory.find((i) => i.id === selectedItemId);
   const maxAvailable = Number(currentItem?.quantity) || 0;
-  const totalAmount = quantity * unitPrice;
-  const balance = Math.max(0, totalAmount - amountPaid);
+  const qNum = Math.max(1, Number(quantity) || 1);
+  const uNum = Math.max(0, Number(unitPrice) || 0);
+  const totalAmount = qNum * uNum;
+  const aPaidNum = Math.max(0, Number(amountPaid) || 0);
+  const balance = Math.max(0, totalAmount - aPaidNum);
 
   const handleItemSelect = (id) => {
     setSelectedItemId(id);
     const item = inventory.find((i) => i.id === id);
     if (item) {
       const price = Number(item.sellingPrice) || 0;
-      setUnitPrice(price);
+      setUnitPrice(price > 0 ? price : '');
       setQuantity(1);
-      setAmountPaid(price);
+      setAmountPaid(price > 0 ? price : '');
     }
   };
 
@@ -89,29 +92,33 @@ export const MakeSaleModal = () => {
   };
 
   const handleQuantityChange = (val) => {
-    const q = Math.max(1, Number(val) || 1);
-    setQuantity(q);
-    const total = q * unitPrice;
+    const clean = typeof val === 'string' ? val.replace(/^0+(?=\d)/, '') : val;
+    setQuantity(clean);
+    const q = Math.max(1, Number(clean) || 1);
+    const u = Math.max(0, Number(unitPrice) || 0);
+    const total = q * u;
     if (paymentStatus === 'paid') {
-      setAmountPaid(total);
+      setAmountPaid(total > 0 ? total : '');
     }
   };
 
   const handlePriceChange = (val) => {
-    const p = Math.max(0, Number(val) || 0);
-    setUnitPrice(p);
-    const total = quantity * p;
+    const clean = typeof val === 'string' ? val.replace(/^0+(?=\d)/, '') : val;
+    setUnitPrice(clean);
+    const q = Math.max(1, Number(quantity) || 1);
+    const p = Math.max(0, Number(clean) || 0);
+    const total = q * p;
     if (paymentStatus === 'paid') {
-      setAmountPaid(total);
+      setAmountPaid(total > 0 ? total : '');
     }
   };
 
   const handleStatusChange = (status) => {
     setPaymentStatus(status);
     if (status === 'paid') {
-      setAmountPaid(totalAmount);
+      setAmountPaid(totalAmount > 0 ? totalAmount : '');
     } else if (status === 'unpaid') {
-      setAmountPaid(0);
+      setAmountPaid('');
     }
   };
 
@@ -119,8 +126,8 @@ export const MakeSaleModal = () => {
     e.preventDefault();
     if (!currentItem) return;
 
-    if (quantity > maxAvailable) {
-      alert(`Cannot sell ${quantity} units! Only ${maxAvailable} available in stock.`);
+    if (qNum > maxAvailable) {
+      alert(`Cannot sell ${qNum} units! Only ${maxAvailable} available in stock.`);
       return;
     }
 
@@ -130,7 +137,7 @@ export const MakeSaleModal = () => {
       const timestamp = new Date().toISOString();
 
       // 1. Decrement inventory
-      const newStockQty = Math.max(0, maxAvailable - quantity);
+      const newStockQty = Math.max(0, maxAvailable - qNum);
       await editItem('inventory', currentItem.id, { quantity: newStockQty });
 
       // 2. Build sale record
@@ -141,11 +148,11 @@ export const MakeSaleModal = () => {
         imageUrl: currentItem.imageUrl || '',
         category: currentItem.category || 'Finished Furniture',
         sku: currentItem.sku || 'N/A',
-        quantity,
-        unitPrice,
+        quantity: qNum,
+        unitPrice: uNum,
         costPrice: Number(currentItem.costPrice) || 0,
         totalAmount,
-        amountPaid: Number(amountPaid),
+        amountPaid: aPaidNum,
         balance,
         paymentMethod,
         paymentStatus,
@@ -170,8 +177,8 @@ export const MakeSaleModal = () => {
         items: [
           {
             description: `${currentItem.name} (${currentItem.sku || 'Stock Item'})`,
-            quantity,
-            unitPrice,
+            quantity: qNum,
+            unitPrice: uNum,
             imageUrl: currentItem.imageUrl || ''
           }
         ],
@@ -180,7 +187,7 @@ export const MakeSaleModal = () => {
         taxRate: 0,
         taxAmount: 0,
         totalAmount,
-        amountPaid: Number(amountPaid),
+        amountPaid: aPaidNum,
         paymentMethod,
         status: paymentStatus === 'paid' ? 'paid' : paymentStatus === 'partial' ? 'partial' : 'unpaid',
         notes: notes.trim() || 'Showroom Direct Sale',
@@ -331,21 +338,23 @@ export const MakeSaleModal = () => {
                 textAlign: 'center',
                 fontWeight: 700,
                 fontSize: '1.1rem',
-                borderColor: quantity > maxAvailable ? '#ef4444' : 'inherit'
+                borderColor: qNum > maxAvailable ? '#ef4444' : 'inherit'
               }}
-              value={quantity}
+              placeholder="1"
+              value={quantity ?? ''}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => handleQuantityChange(e.target.value)}
             />
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => handleQuantityChange(quantity + 1)}
-              disabled={quantity >= maxAvailable}
+              onClick={() => handleQuantityChange(qNum + 1)}
+              disabled={qNum >= maxAvailable}
             >
               <Plus size={14} />
             </button>
           </div>
-          {quantity > maxAvailable && (
+          {qNum > maxAvailable && (
             <div style={{ color: '#ef4444', fontSize: '0.74rem', marginTop: '4px' }}>
               Warning: Exceeds showroom stock level ({maxAvailable})!
             </div>
@@ -360,7 +369,9 @@ export const MakeSaleModal = () => {
             required
             className="form-input"
             style={{ fontWeight: 700, color: 'var(--gold-light)' }}
-            value={unitPrice}
+            placeholder="0"
+            value={unitPrice ?? ''}
+            onFocus={(e) => e.target.select()}
             onChange={(e) => handlePriceChange(e.target.value)}
           />
           <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -475,8 +486,13 @@ export const MakeSaleModal = () => {
             max={totalAmount}
             className="form-input"
             style={{ fontWeight: 700, color: '#10b981' }}
-            value={amountPaid}
-            onChange={(e) => setAmountPaid(Number(e.target.value) || 0)}
+            placeholder="0"
+            value={amountPaid ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setAmountPaid(clean);
+            }}
           />
         </div>
 

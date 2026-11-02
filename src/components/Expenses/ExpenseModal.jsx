@@ -10,7 +10,7 @@ export const ExpenseModal = () => {
   const [formData, setFormData] = useState({
     title: '',
     category: 'Timber & Raw Materials',
-    amount: 0,
+    amount: '',
     date: new Date().toISOString().split('T')[0],
     paidTo: '',
     paymentMethod: 'Cash',
@@ -23,7 +23,7 @@ export const ExpenseModal = () => {
       setFormData({
         title: existing.title || '',
         category: existing.category || 'Timber & Raw Materials',
-        amount: existing.amount || 0,
+        amount: existing.amount || '',
         date: existing.date || new Date().toISOString().split('T')[0],
         paidTo: existing.paidTo || '',
         paymentMethod: existing.paymentMethod || 'Cash',
@@ -34,7 +34,7 @@ export const ExpenseModal = () => {
       setFormData({
         title: '',
         category: 'Timber & Raw Materials',
-        amount: 0,
+        amount: '',
         date: new Date().toISOString().split('T')[0],
         paidTo: '',
         paymentMethod: 'Cash',
@@ -50,12 +50,18 @@ export const ExpenseModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.amount) return;
+    const amt = Number(formData.amount) || 0;
+    if (!formData.title.trim() || !amt) return;
+
+    const payload = {
+      ...formData,
+      amount: amt
+    };
 
     if (isEditing) {
-      await editItem('expenses', existing.id, formData);
+      await editItem('expenses', existing.id, payload);
     } else {
-      await addItem('expenses', formData);
+      await addItem('expenses', payload);
     }
     setModalConfig({ type: null });
   };
@@ -104,8 +110,13 @@ export const ExpenseModal = () => {
             min="0"
             required
             className="form-input"
-            value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.amount ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, amount: clean });
+            }}
           />
         </div>
 

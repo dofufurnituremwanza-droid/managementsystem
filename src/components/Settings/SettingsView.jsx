@@ -62,7 +62,10 @@ export const SettingsView = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    updateSettings(formData);
+    updateSettings({
+      ...formData,
+      taxRate: Number(formData.taxRate) || 0
+    });
   };
 
   const handleAddStaff = async (e) => {
@@ -424,8 +427,13 @@ export const SettingsView = () => {
               min="0"
               max="100"
               className="form-input"
-              value={formData.taxRate}
-              onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) || 0 })}
+              placeholder="0"
+              value={formData.taxRate === 0 || formData.taxRate === '' ? '' : (formData.taxRate ?? '')}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => {
+                const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+                setFormData({ ...formData, taxRate: clean });
+              }}
             />
           </div>
 

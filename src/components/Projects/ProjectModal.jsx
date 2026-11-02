@@ -20,8 +20,8 @@ export const ProjectModal = () => {
     siteLocation: '',
     rooms: 'Living Room, Dining Area',
     designStyle: 'Modern Luxury / Warm Minimalist',
-    contractValue: 0,
-    depositPaid: 0,
+    contractValue: '',
+    depositPaid: '',
     stage: 'consultation', // consultation, moodboard, 3d_approval, procurement, site_fitout, completed, cancelled
     startDate: '',
     targetHandoverDate: '',
@@ -48,8 +48,8 @@ export const ProjectModal = () => {
         siteLocation: existing.siteLocation || '',
         rooms: existing.rooms || 'Living Room',
         designStyle: existing.designStyle || 'Modern Luxury',
-        contractValue: existing.contractValue || 0,
-        depositPaid: existing.depositPaid || 0,
+        contractValue: existing.contractValue || '',
+        depositPaid: existing.depositPaid || '',
         stage: existing.stage || 'consultation',
         startDate: existing.startDate || '',
         targetHandoverDate: existing.targetHandoverDate || '',
@@ -74,8 +74,8 @@ export const ProjectModal = () => {
         siteLocation: '',
         rooms: 'Living Room, Dining Area',
         designStyle: 'Modern Luxury / Warm Minimalist',
-        contractValue: 0,
-        depositPaid: 0,
+        contractValue: '',
+        depositPaid: '',
         stage: 'consultation',
         startDate: new Date().toISOString().split('T')[0],
         targetHandoverDate: '',
@@ -126,10 +126,18 @@ export const ProjectModal = () => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.clientName.trim()) return;
 
+    const cVal = Math.max(0, Number(formData.contractValue) || 0);
+    const dPaid = Math.max(0, Number(formData.depositPaid) || 0);
+    const payload = {
+      ...formData,
+      contractValue: cVal,
+      depositPaid: dPaid
+    };
+
     if (isEditing) {
-      await editItem('projects', existing.id, formData);
+      await editItem('projects', existing.id, payload);
     } else {
-      await addItem('projects', formData);
+      await addItem('projects', payload);
     }
     setModalConfig({ type: null });
   };
@@ -254,8 +262,13 @@ export const ProjectModal = () => {
             type="number"
             min="0"
             className="form-input"
-            value={formData.contractValue}
-            onChange={(e) => setFormData({ ...formData, contractValue: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.contractValue ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, contractValue: clean });
+            }}
           />
         </div>
 
@@ -265,8 +278,13 @@ export const ProjectModal = () => {
             type="number"
             min="0"
             className="form-input"
-            value={formData.depositPaid}
-            onChange={(e) => setFormData({ ...formData, depositPaid: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.depositPaid ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, depositPaid: clean });
+            }}
           />
         </div>
 

@@ -23,9 +23,9 @@ export const OrderModal = () => {
     color: '',
     dimensions: '',
     quantity: 1,
-    unitPrice: 0,
-    totalPrice: 0,
-    depositPaid: 0,
+    unitPrice: '',
+    totalPrice: '',
+    depositPaid: '',
     orderDate: todayStr,
     dueDate: '',
     targetDeliveryDate: '',
@@ -49,9 +49,9 @@ export const OrderModal = () => {
         color: existing.color || existing.fabric || '',
         dimensions: existing.dimensions || '',
         quantity: existing.quantity !== undefined ? existing.quantity : 1,
-        unitPrice: existing.unitPrice || 0,
-        totalPrice: existing.totalPrice || 0,
-        depositPaid: existing.depositPaid !== undefined ? existing.depositPaid : 0,
+        unitPrice: existing.unitPrice || '',
+        totalPrice: existing.totalPrice || '',
+        depositPaid: existing.depositPaid !== undefined && existing.depositPaid !== 0 ? existing.depositPaid : '',
         orderDate: orderDt,
         dueDate: deliveryDt,
         targetDeliveryDate: deliveryDt,
@@ -69,9 +69,9 @@ export const OrderModal = () => {
         color: '',
         dimensions: '',
         quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-        depositPaid: 0,
+        unitPrice: '',
+        totalPrice: '',
+        depositPaid: '',
         orderDate: todayStr,
         dueDate: '',
         targetDeliveryDate: '',
@@ -105,13 +105,16 @@ export const OrderModal = () => {
   };
 
   const handlePriceChange = (qty, unit) => {
-    const q = Number(qty) || 0;
-    const u = Number(unit) || 0;
+    const cleanQty = typeof qty === 'string' ? qty.replace(/^0+(?=\d)/, '') : qty;
+    const cleanUnit = typeof unit === 'string' ? unit.replace(/^0+(?=\d)/, '') : unit;
+    const q = cleanQty === '' ? '' : Math.max(1, Number(cleanQty) || 1);
+    const u = cleanUnit === '' ? '' : Math.max(0, Number(cleanUnit) || 0);
+    const total = (Number(q) || 0) * (Number(u) || 0);
     setFormData((prev) => ({
       ...prev,
-      quantity: q,
-      unitPrice: u,
-      totalPrice: q * u
+      quantity: cleanQty,
+      unitPrice: cleanUnit,
+      totalPrice: total > 0 ? total : ''
     }));
   };
 
@@ -121,9 +124,17 @@ export const OrderModal = () => {
 
     const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
     const deliveryDate = formData.targetDeliveryDate || formData.dueDate || '';
+    const qNum = Math.max(1, Number(formData.quantity) || 1);
+    const uNum = Math.max(0, Number(formData.unitPrice) || 0);
+    const dNum = Math.max(0, Number(formData.depositPaid) || 0);
+    const tNum = qNum * uNum;
 
     const payload = {
       ...formData,
+      quantity: qNum,
+      unitPrice: uNum,
+      totalPrice: tNum,
+      depositPaid: dNum,
       itemName: finalItemName,
       color: formData.color || '',
       fabric: formData.color || '',
@@ -399,7 +410,9 @@ export const OrderModal = () => {
             type="number"
             min="1"
             className="form-input"
-            value={formData.quantity}
+            placeholder="1"
+            value={formData.quantity ?? ''}
+            onFocus={(e) => e.target.select()}
             onChange={(e) => handlePriceChange(e.target.value, formData.unitPrice)}
           />
         </div>
@@ -411,8 +424,9 @@ export const OrderModal = () => {
             type="number"
             min="0"
             className="form-input"
-            placeholder="e.g. 1500000"
-            value={formData.unitPrice}
+            placeholder="0"
+            value={formData.unitPrice ?? ''}
+            onFocus={(e) => e.target.select()}
             onChange={(e) => handlePriceChange(formData.quantity, e.target.value)}
           />
         </div>
@@ -424,7 +438,8 @@ export const OrderModal = () => {
             readOnly
             className="form-input"
             style={{ background: 'rgba(255,255,255,0.03)', fontWeight: 700 }}
-            value={formData.totalPrice}
+            placeholder="0"
+            value={formData.totalPrice ?? ''}
           />
         </div>
 
@@ -435,9 +450,13 @@ export const OrderModal = () => {
             type="number"
             min="0"
             className="form-input"
-            placeholder="e.g. 800000"
-            value={formData.depositPaid}
-            onChange={(e) => setFormData({ ...formData, depositPaid: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.depositPaid ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, depositPaid: clean });
+            }}
           />
         </div>
 

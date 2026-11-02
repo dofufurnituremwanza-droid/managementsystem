@@ -13,11 +13,11 @@ export const InventoryModal = () => {
     imageUrl: '',
     sku: `SKU-${Math.floor(100 + Math.random() * 900)}`,
     category: 'Timber & Hardwood',
-    quantity: 0,
+    quantity: '',
     unit: 'Pieces',
     minAlertLevel: 5,
-    costPrice: 0,
-    sellingPrice: 0,
+    costPrice: '',
+    sellingPrice: '',
     supplier: '',
     location: 'Main Workshop Timber Yard',
     notes: ''
@@ -30,11 +30,11 @@ export const InventoryModal = () => {
         imageUrl: existing.imageUrl || '',
         sku: existing.sku || `SKU-${Math.floor(100 + Math.random() * 900)}`,
         category: existing.category || 'Timber & Hardwood',
-        quantity: existing.quantity !== undefined ? existing.quantity : 0,
+        quantity: existing.quantity !== undefined ? (existing.quantity || '') : '',
         unit: existing.unit || 'Pieces',
         minAlertLevel: existing.minAlertLevel !== undefined ? existing.minAlertLevel : 5,
-        costPrice: existing.costPrice || 0,
-        sellingPrice: existing.sellingPrice || 0,
+        costPrice: existing.costPrice || '',
+        sellingPrice: existing.sellingPrice || '',
         supplier: existing.supplier || '',
         location: existing.location || 'Main Workshop Timber Yard',
         notes: existing.notes || ''
@@ -45,11 +45,11 @@ export const InventoryModal = () => {
         imageUrl: '',
         sku: `SKU-${Math.floor(100 + Math.random() * 900)}`,
         category: 'Timber & Hardwood',
-        quantity: 0,
+        quantity: '',
         unit: 'Pieces',
         minAlertLevel: 5,
-        costPrice: 0,
-        sellingPrice: 0,
+        costPrice: '',
+        sellingPrice: '',
         supplier: '',
         location: 'Main Workshop Timber Yard',
         notes: ''
@@ -65,10 +65,18 @@ export const InventoryModal = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
+    const payload = {
+      ...formData,
+      quantity: Math.max(0, Number(formData.quantity) || 0),
+      costPrice: Math.max(0, Number(formData.costPrice) || 0),
+      sellingPrice: Math.max(0, Number(formData.sellingPrice) || 0),
+      minAlertLevel: Math.max(0, Number(formData.minAlertLevel) || 0)
+    };
+
     if (isEditing) {
-      await editItem('inventory', existing.id, formData);
+      await editItem('inventory', existing.id, payload);
     } else {
-      await addItem('inventory', formData);
+      await addItem('inventory', payload);
     }
     setModalConfig({ type: null });
   };
@@ -134,8 +142,13 @@ export const InventoryModal = () => {
             type="number"
             min="0"
             className="form-input"
-            value={formData.quantity}
-            onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.quantity ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, quantity: clean });
+            }}
           />
         </div>
 
@@ -186,9 +199,13 @@ export const InventoryModal = () => {
                 required
                 className="form-input"
                 style={{ borderColor: 'var(--gold-primary)', background: 'rgba(197, 160, 89, 0.08)', fontWeight: 700 }}
-                placeholder="Amount customer pays (e.g. 1500000)"
-                value={formData.sellingPrice}
-                onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) || 0 })}
+                placeholder="0"
+                value={formData.sellingPrice ?? ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+                  setFormData({ ...formData, sellingPrice: clean });
+                }}
               />
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Price charged when making a sale</span>
             </div>
@@ -199,9 +216,13 @@ export const InventoryModal = () => {
                 type="number"
                 min="0"
                 className="form-input"
-                placeholder="Timber & labor cost (e.g. 900000)"
-                value={formData.costPrice}
-                onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) || 0 })}
+                placeholder="0"
+                value={formData.costPrice ?? ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+                  setFormData({ ...formData, costPrice: clean });
+                }}
               />
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Raw materials & workshop production cost</span>
             </div>
@@ -214,9 +235,13 @@ export const InventoryModal = () => {
             type="number"
             min="0"
             className="form-input"
-            placeholder="Alert when stock falls below"
-            value={formData.minAlertLevel}
-            onChange={(e) => setFormData({ ...formData, minAlertLevel: Number(e.target.value) || 0 })}
+            placeholder="0"
+            value={formData.minAlertLevel ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => {
+              const clean = e.target.value === '' ? '' : e.target.value.replace(/^0+(?=\d)/, '');
+              setFormData({ ...formData, minAlertLevel: clean });
+            }}
           />
         </div>
 
