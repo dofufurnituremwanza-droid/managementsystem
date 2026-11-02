@@ -38,8 +38,29 @@ export const InvoiceModal = () => {
       const initialType = existing.type || 'invoice';
       const itemsList =
         existing.items && existing.items.length > 0
-          ? existing.items.map((it) => ({ ...it, unitPrice: it.unitPrice || '' }))
+          ? existing.items.map((it) => {
+              const q = Math.max(1, Number(it.quantity) || 1);
+              const u = Number(it.unitPrice) || 0;
+              const fallbackUnit =
+                u > 0
+                  ? u
+                  : Number(existing.totalAmount) > 0
+                  ? Math.round(Number(existing.totalAmount) / q)
+                  : Number(existing.subtotal) > 0
+                  ? Math.round(Number(existing.subtotal) / q)
+                  : '';
+              return { ...it, quantity: q, unitPrice: fallbackUnit };
+            })
           : [{ description: '', quantity: 1, unitPrice: '' }];
+
+      const computedSub = itemsList.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
+        0
+      );
+      const rawSub = Number(existing.subtotal) || 0;
+      const rawTotal = Number(existing.totalAmount) || 0;
+      const finalSub = rawSub > 0 ? rawSub : computedSub > 0 ? computedSub : rawTotal;
+      const finalTotal = rawTotal > 0 ? rawTotal : finalSub;
 
       setFormData({
         type: initialType,
@@ -51,11 +72,11 @@ export const InvoiceModal = () => {
         issueDate: existing.issueDate || new Date().toISOString().split('T')[0],
         dueDate: existing.dueDate || '',
         items: itemsList,
-        subtotal: existing.subtotal || 0,
+        subtotal: finalSub,
         discount: existing.discount || '',
         taxRate: existing.taxRate !== undefined ? (existing.taxRate || '') : (settings.taxRate || ''),
         taxAmount: existing.taxAmount || 0,
-        totalAmount: existing.totalAmount || 0,
+        totalAmount: finalTotal,
         amountPaid: existing.amountPaid || '',
         paymentMethod: existing.paymentMethod || 'Bank Transfer',
         status: existing.status || 'unpaid',

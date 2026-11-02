@@ -537,7 +537,13 @@ export const OrdersList = () => {
                           <button
                             className="btn-secondary btn-sm"
                             title="Generate Invoice for Order"
-                            onClick={() =>
+                            onClick={() => {
+                              const oQty = Math.max(1, Number(order.quantity) || 1);
+                              const oTotal = Number(order.totalPrice) || Number(order.price) || 0;
+                              const oUnit = Number(order.unitPrice) || (oTotal > 0 ? Math.round(oTotal / oQty) : 0);
+                              const computedTotal = oTotal > 0 ? oTotal : (oUnit * oQty);
+                              const dPaid = Number(order.depositPaid) || 0;
+
                               setModalConfig({
                                 type: 'new_invoice',
                                 data: {
@@ -551,23 +557,23 @@ export const OrdersList = () => {
                                       description: `${order.itemName || order.category || 'Custom Furniture'}${
                                         order.color ? ` - ${order.color}` : ''
                                       }${order.dimensions ? ` (${order.dimensions})` : ''}`,
-                                      quantity: order.quantity || 1,
-                                      unitPrice: order.unitPrice || order.totalPrice,
+                                      quantity: oQty,
+                                      unitPrice: oUnit > 0 ? oUnit : computedTotal,
                                       imageUrl: order.imageUrl || ''
                                     }
                                   ],
-                                  subtotal: order.totalPrice,
-                                  totalAmount: order.totalPrice,
-                                  amountPaid: order.depositPaid || 0,
+                                  subtotal: computedTotal,
+                                  totalAmount: computedTotal,
+                                  amountPaid: dPaid,
                                   status:
-                                    (order.depositPaid || 0) >= (order.totalPrice || 0)
+                                    dPaid >= computedTotal && computedTotal > 0
                                       ? 'paid'
-                                      : (order.depositPaid || 0) > 0
+                                      : dPaid > 0
                                       ? 'partial'
                                       : 'unpaid'
                                 }
-                              })
-                            }
+                              });
+                            }}
                           >
                             <FileText size={13} />
                             <span className="no-print">Invoice</span>

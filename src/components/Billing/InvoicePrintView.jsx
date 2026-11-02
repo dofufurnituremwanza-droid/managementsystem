@@ -16,11 +16,101 @@ export const InvoicePrintView = () => {
 
   if (modalConfig.type !== 'print_invoice' || !invoice) return null;
 
+  // Find linked customer order if applicable to ensure product price is never lost or 0
+  const linkedOrder = orders?.find(
+    (o) =>
+      (invoice.orderId && o.id === invoice.orderId) ||
+      (invoice.orderNumber && o.orderNumber === invoice.orderNumber) ||
+      (invoice.invoiceNumber && o.invoiceNumber === invoice.invoiceNumber) ||
+      (invoice.id && o.invoiceId === invoice.id)
+  );
+
+  const orderTotal = Number(linkedOrder?.totalPrice) || Number(linkedOrder?.price) || 0;
+  const orderDeposit = Number(linkedOrder?.depositPaid) || 0;
+  const orderQty = Math.max(1, Number(linkedOrder?.quantity) || 1);
+  const orderUnit = Number(linkedOrder?.unitPrice) || (orderTotal > 0 ? Math.round(orderTotal / orderQty) : 0);
+
+  // Robust line items: fallback to linked order specs so price is never 0
+  const rawItems =
+    invoice.items && invoice.items.length > 0
+      ? invoice.items
+      : linkedOrder
+      ? [
+          {
+            description: `${linkedOrder.itemName || linkedOrder.category || 'Custom Furniture'}${
+              linkedOrder.color ? ` - Color: ${linkedOrder.color}` : ''
+            }${linkedOrder.dimensions ? ` (${linkedOrder.dimensions})` : ''}`,
+            quantity: orderQty,
+            unitPrice: orderUnit > 0 ? orderUnit : orderTotal,
+            imageUrl: linkedOrder.imageUrl || ''
+          }
+        ]
+      : [];
+
+  const resolvedItems = rawItems.map((item) => {
+    const itemQty = Math.max(1, Number(item.quantity) || 1);
+    let itemUnit = Number(item.unitPrice) || 0;
+    if (itemUnit <= 0) {
+      if (orderUnit > 0) itemUnit = orderUnit;
+      else if (orderTotal > 0) itemUnit = Math.round(orderTotal / itemQty);
+      else if (Number(invoice.totalAmount) > 0) itemUnit = Math.round(Number(invoice.totalAmount) / itemQty);
+      else if (Number(invoice.subtotal) > 0) itemUnit = Math.round(Number(invoice.subtotal) / itemQty);
+    }
+    return {
+      ...item,
+      quantity: itemQty,
+      unitPrice: itemUnit,
+      imageUrl: item.imageUrl || linkedOrder?.imageUrl || ''
+    };
+  });
+
+  const computedSubtotal = resolvedItems.reduce(
+    (sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
+    0
+  );
+
+  const discount = Math.max(0, Number(invoice.discount) || 0);
+  const taxRate = Math.max(0, Number(invoice.taxRate) || 0);
+  const taxAmount =
+    Number(invoice.taxAmount) ||
+    (taxRate > 0 ? Math.round(Math.max(0, computedSubtotal - discount) * (taxRate / 100)) : 0);
+
+  const resolvedSubtotal =
+    Number(invoice.subtotal) > 0 ? Number(invoice.subtotal) : computedSubtotal > 0 ? computedSubtotal : orderTotal;
+
+  let resolvedTotal = Number(invoice.totalAmount) || 0;
+  if (resolvedTotal <= 0) {
+    resolvedTotal = computedSubtotal > 0 ? Math.max(0, computedSubtotal - discount) + taxAmount : orderTotal;
+  }
+
+  const resolvedAmountPaid =
+    invoice.amountPaid !== undefined && Number(invoice.amountPaid) > 0
+      ? Number(invoice.amountPaid)
+      : orderDeposit;
+
   const isQuote = invoice.type === 'quotation';
-  const totalAmount = Number(invoice.totalAmount) || 0;
-  const amountPaid = Number(invoice.amountPaid) || 0;
+  const totalAmount = resolvedTotal;
+  const amountPaid = resolvedAmountPaid;
   const balance = Math.max(0, totalAmount - amountPaid);
   const isFullyPaid = balance <= 0 && totalAmount > 0;
+
+  // Auto-heal any existing invoices in the database that were saved with 0
+  React.useEffect(() => {
+    if (
+      invoice?.id &&
+      (Number(invoice.totalAmount) <= 0 ||
+        !invoice.items ||
+        invoice.items.some((i) => !i.unitPrice || Number(i.unitPrice) <= 0)) &&
+      resolvedTotal > 0
+    ) {
+      editItem('invoices', invoice.id, {
+        subtotal: resolvedSubtotal,
+        totalAmount: resolvedTotal,
+        amountPaid: resolvedAmountPaid,
+        items: resolvedItems
+      });
+    }
+  }, [invoice?.id, resolvedTotal]);
 
   const handlePrint = () => {
     window.print();
@@ -46,7 +136,14 @@ export const InvoicePrintView = () => {
   const handleSharePdfToWhatsApp = async () => {
     setIsSharingPdf(true);
     try {
-      await shareInvoicePdfViaWhatsApp(invoice, 'printable-invoice', showToast);
+      const payloadToShare = {
+        ...invoice,
+        items: resolvedItems,
+        subtotal: resolvedSubtotal,
+        totalAmount: resolvedTotal,
+        amountPaid: resolvedAmountPaid
+      };
+      await shareInvoicePdfViaWhatsApp(payloadToShare, 'printable-invoice', showToast);
     } catch (err) {
       console.error(err);
       showToast('Failed to share PDF: ' + err.message, 'error');
@@ -381,7 +478,7 @@ export const InvoicePrintView = () => {
               </span>
             </div>
             <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '5px' }}>
-              Grand Total: <strong>{formatMoney(invoice.totalAmount)}</strong>
+              Grand Total: <strong>{formatMoney(totalAmount)}</strong>
             </div>
             {amountPaid > 0 && (
               <div style={{ fontSize: '0.82rem', color: '#059669', fontWeight: 700 }}>
@@ -414,7 +511,7 @@ export const InvoicePrintView = () => {
               </tr>
             </thead>
             <tbody>
-              {(invoice.items || []).map((item, idx) => (
+              {(resolvedItems || []).map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '10px 12px', textAlign: 'center', color: '#64748b' }}>
                     {idx + 1}
@@ -464,7 +561,7 @@ export const InvoicePrintView = () => {
           <div style={{ width: '320px', color: '#0f172a', fontSize: '0.86rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
               <span style={{ color: '#64748b' }}>Subtotal:</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(invoice.subtotal)}</strong>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(resolvedSubtotal)}</strong>
             </div>
 
             {Number(invoice.discount) > 0 && (
@@ -495,13 +592,13 @@ export const InvoicePrintView = () => {
             >
               <span>Grand Total:</span>
               <span style={{ color: '#c5a059', fontFamily: 'var(--font-mono)' }}>
-                {formatMoney(invoice.totalAmount)}
+                {formatMoney(totalAmount)}
               </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: '#059669', fontSize: '0.86rem' }}>
               <span>Deposit / Amount Paid:</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(invoice.amountPaid || 0)}</strong>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(amountPaid)}</strong>
             </div>
 
             <div

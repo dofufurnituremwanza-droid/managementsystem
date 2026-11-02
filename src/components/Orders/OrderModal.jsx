@@ -38,6 +38,11 @@ export const OrderModal = () => {
       const orderDt = existing.orderDate || existing.createdAt?.split('T')[0] || todayStr;
       const deliveryDt = existing.targetDeliveryDate || existing.dueDate || '';
 
+      const rawQty = existing.quantity !== undefined && existing.quantity !== '' ? Number(existing.quantity) || 1 : 1;
+      const rawTotal = Number(existing.totalPrice) || Number(existing.price) || 0;
+      const rawUnit = Number(existing.unitPrice) || (rawTotal > 0 ? Math.round(rawTotal / rawQty) : 0);
+      const calculatedTotal = rawTotal > 0 ? rawTotal : (rawUnit * rawQty);
+
       setFormData({
         orderNumber: existing.orderNumber || generateOrderNum(),
         clientId: existing.clientId || '',
@@ -48,10 +53,10 @@ export const OrderModal = () => {
         itemName: existing.itemName || activeCat,
         color: existing.color || existing.fabric || '',
         dimensions: existing.dimensions || '',
-        quantity: existing.quantity !== undefined ? existing.quantity : 1,
-        unitPrice: existing.unitPrice || '',
-        totalPrice: existing.totalPrice || '',
-        depositPaid: existing.depositPaid !== undefined && existing.depositPaid !== 0 ? existing.depositPaid : '',
+        quantity: rawQty,
+        unitPrice: rawUnit > 0 ? rawUnit : '',
+        totalPrice: calculatedTotal > 0 ? calculatedTotal : '',
+        depositPaid: existing.depositPaid !== undefined && existing.depositPaid !== '' && existing.depositPaid !== 0 ? existing.depositPaid : '',
         orderDate: orderDt,
         dueDate: deliveryDt,
         targetDeliveryDate: deliveryDt,
@@ -107,14 +112,26 @@ export const OrderModal = () => {
   const handlePriceChange = (qty, unit) => {
     const cleanQty = typeof qty === 'string' ? qty.replace(/^0+(?=\d)/, '') : qty;
     const cleanUnit = typeof unit === 'string' ? unit.replace(/^0+(?=\d)/, '') : unit;
-    const q = cleanQty === '' ? '' : Math.max(1, Number(cleanQty) || 1);
-    const u = cleanUnit === '' ? '' : Math.max(0, Number(cleanUnit) || 0);
-    const total = (Number(q) || 0) * (Number(u) || 0);
+    const q = cleanQty === '' ? 1 : Math.max(1, Number(cleanQty) || 1);
+    const u = cleanUnit === '' ? 0 : Math.max(0, Number(cleanUnit) || 0);
+    const total = q * u;
     setFormData((prev) => ({
       ...prev,
       quantity: cleanQty,
       unitPrice: cleanUnit,
       totalPrice: total > 0 ? total : ''
+    }));
+  };
+
+  const handleTotalPriceChange = (total) => {
+    const cleanTotal = typeof total === 'string' ? total.replace(/^0+(?=\d)/, '') : total;
+    const q = Math.max(1, Number(formData.quantity) || 1);
+    const t = cleanTotal === '' ? 0 : Math.max(0, Number(cleanTotal) || 0);
+    const u = t > 0 ? Math.round(t / q) : '';
+    setFormData((prev) => ({
+      ...prev,
+      unitPrice: u > 0 ? u : '',
+      totalPrice: cleanTotal
     }));
   };
 
@@ -125,9 +142,19 @@ export const OrderModal = () => {
     const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
     const deliveryDate = formData.targetDeliveryDate || formData.dueDate || '';
     const qNum = Math.max(1, Number(formData.quantity) || 1);
-    const uNum = Math.max(0, Number(formData.unitPrice) || 0);
+    let uNum = Math.max(0, Number(formData.unitPrice) || 0);
+    let tNum = Math.max(0, Number(formData.totalPrice) || 0);
+
+    // Robust calculation so actual product price is NEVER 0
+    if (uNum > 0 && tNum === 0) {
+      tNum = qNum * uNum;
+    } else if (tNum > 0 && uNum === 0) {
+      uNum = Math.round(tNum / qNum);
+    } else if (uNum > 0 && tNum > 0 && tNum !== qNum * uNum) {
+      tNum = qNum * uNum;
+    }
+
     const dNum = Math.max(0, Number(formData.depositPaid) || 0);
-    const tNum = qNum * uNum;
 
     const payload = {
       ...formData,
@@ -159,12 +186,10 @@ export const OrderModal = () => {
     );
     const clientAddress = selectedClient?.address || selectedClient?.deliveryAddress || '';
 
-    const totalPrice = Number(formData.totalPrice) || 0;
-    const depositPaid = Number(formData.depositPaid) || 0;
     const invStatus =
-      depositPaid >= totalPrice && totalPrice > 0
+      dNum >= tNum && tNum > 0
         ? 'paid'
-        : depositPaid > 0
+        : dNum > 0
         ? 'partial'
         : 'unpaid';
 
@@ -174,8 +199,8 @@ export const OrderModal = () => {
 
     const invoiceItem = {
       description: itemDesc,
-      quantity: Number(formData.quantity) || 1,
-      unitPrice: Number(formData.unitPrice) || 0,
+      quantity: qNum,
+      unitPrice: uNum > 0 ? uNum : (tNum > 0 ? Math.round(tNum / qNum) : 0),
       imageUrl: formData.imageUrl || ''
     };
 
@@ -200,12 +225,12 @@ export const OrderModal = () => {
         issueDate: formData.orderDate || todayStr,
         dueDate: deliveryDate || formData.orderDate || todayStr,
         items: [invoiceItem],
-        subtotal: totalPrice,
+        subtotal: tNum,
         discount: 0,
         taxRate: 0,
         taxAmount: 0,
-        totalAmount: totalPrice,
-        amountPaid: depositPaid,
+        totalAmount: tNum,
+        amountPaid: dNum,
         paymentMethod: 'Bank Transfer / Cash',
         status: invStatus,
         notes: `Official Commercial Invoice for Order #${formData.orderNumber}. Category: ${
@@ -239,12 +264,12 @@ export const OrderModal = () => {
         issueDate: formData.orderDate || todayStr,
         dueDate: deliveryDate || formData.orderDate || todayStr,
         items: [invoiceItem],
-        subtotal: totalPrice,
+        subtotal: tNum,
         discount: 0,
         taxRate: 0,
         taxAmount: 0,
-        totalAmount: totalPrice,
-        amountPaid: depositPaid,
+        totalAmount: tNum,
+        amountPaid: dNum,
         paymentMethod: 'Bank Transfer / Cash',
         status: invStatus,
         notes: `Auto-generated official invoice for Customer Order #${formData.orderNumber}. Category: ${
@@ -277,6 +302,10 @@ export const OrderModal = () => {
       type: 'order_receipt',
       data: {
         ...payload,
+        quantity: qNum,
+        unitPrice: uNum,
+        totalPrice: tNum,
+        depositPaid: dNum,
         id: savedRecord?.id || existing.id,
         invoiceId: savedInvoiceId,
         invoiceNumber: invoiceNum
@@ -435,11 +464,13 @@ export const OrderModal = () => {
           <label>Total Price (Calculated)</label>
           <input
             type="number"
-            readOnly
+            min="0"
             className="form-input"
-            style={{ background: 'rgba(255,255,255,0.03)', fontWeight: 700 }}
+            style={{ fontWeight: 700, borderColor: 'var(--gold-primary)', color: 'var(--gold-light)' }}
             placeholder="0"
             value={formData.totalPrice ?? ''}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => handleTotalPriceChange(e.target.value)}
           />
         </div>
 

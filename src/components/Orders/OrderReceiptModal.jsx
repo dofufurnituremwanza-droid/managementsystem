@@ -23,10 +23,39 @@ export const OrderReceiptModal = () => {
       (order.invoiceId && inv.id === order.invoiceId)
   );
 
-  const totalPrice = Number(order.totalPrice) || 0;
+  const orderQty = Math.max(1, Number(order.quantity) || 1);
+  let resolvedTotal = Number(order.totalPrice) || Number(order.price) || 0;
+  let resolvedUnit = Number(order.unitPrice) || 0;
+
+  if (resolvedUnit > 0 && resolvedTotal === 0) {
+    resolvedTotal = resolvedUnit * orderQty;
+  } else if (resolvedTotal > 0 && resolvedUnit === 0) {
+    resolvedUnit = Math.round(resolvedTotal / orderQty);
+  }
+
+  // Also check linkedInvoice if order values are 0
+  if (resolvedTotal === 0 && linkedInvoice) {
+    const invTotal = Number(linkedInvoice.totalAmount) || Number(linkedInvoice.subtotal) || 0;
+    if (invTotal > 0) {
+      resolvedTotal = invTotal;
+      resolvedUnit = Math.round(invTotal / orderQty);
+    }
+  }
+
+  const totalPrice = resolvedTotal;
   const depositPaid = Number(order.depositPaid) || 0;
   const balance = Math.max(0, totalPrice - depositPaid);
   const isFullyPaid = balance <= 0 && totalPrice > 0;
+
+  // Auto-heal any order in Firestore that was missing unitPrice or totalPrice
+  React.useEffect(() => {
+    if (order?.id && (Number(order.totalPrice) <= 0 || !order.unitPrice) && resolvedTotal > 0) {
+      editItem('orders', order.id, {
+        totalPrice: resolvedTotal,
+        unitPrice: resolvedUnit
+      });
+    }
+  }, [order?.id, resolvedTotal]);
 
   const handlePrint = () => {
     window.print();
@@ -626,6 +655,13 @@ export const OrderReceiptModal = () => {
                 <div>
                   <span style={{ color: '#64748b' }}>🏷️ Category:</span>{' '}
                   <strong>{order.category || 'Custom Furniture'}</strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b' }}>💰 Product Price:</span>{' '}
+                  <strong style={{ color: '#047857', fontFamily: 'var(--font-mono)' }}>
+                    {formatMoney(resolvedUnit)} {orderQty > 1 ? `(x${orderQty})` : ''}
+                  </strong>
                 </div>
 
                 {(order.color || order.fabric) && (
