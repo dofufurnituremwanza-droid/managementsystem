@@ -3,13 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Printer, Download, CheckCircle2, Check, ShieldCheck, MessageCircle } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
-import { shareInvoiceViaWhatsApp } from '../../utils/whatsappShare';
+import { shareInvoicePdfViaWhatsApp, shareInvoiceViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
 
 export const InvoicePrintView = () => {
   const { modalConfig, setModalConfig, orders, settings, formatMoney, editItem, showToast } = useApp();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharingPdf, setIsSharingPdf] = useState(false);
 
   const invoice = modalConfig.data;
 
@@ -39,6 +40,18 @@ export const InvoicePrintView = () => {
       showToast('Error generating PDF, opening system print.', 'error');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleSharePdfToWhatsApp = async () => {
+    setIsSharingPdf(true);
+    try {
+      await shareInvoicePdfViaWhatsApp(invoice, 'printable-invoice', showToast);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to share PDF: ' + err.message, 'error');
+    } finally {
+      setIsSharingPdf(false);
     }
   };
 
@@ -132,11 +145,12 @@ export const InvoicePrintView = () => {
             <button
               type="button"
               className="btn btn-whatsapp"
-              onClick={() => shareInvoiceViaWhatsApp(invoice, formatMoney)}
-              title={`Send official ${isQuote ? 'proforma quote' : 'invoice'} directly to customer via WhatsApp`}
+              onClick={handleSharePdfToWhatsApp}
+              disabled={isSharingPdf || isDownloading}
+              title={`Share official PDF ${isQuote ? 'proforma quote' : 'invoice'} directly to customer via WhatsApp`}
             >
               <MessageCircle size={16} />
-              <span>Share to WhatsApp</span>
+              <span>{isSharingPdf ? 'Preparing PDF...' : 'Share PDF to WhatsApp'}</span>
             </button>
             <button
               className="btn btn-outline-gold"

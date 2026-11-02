@@ -3,13 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText, MessageCircle } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
-import { shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
+import { shareOrderReceiptPdfViaWhatsApp, shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
 
 export const OrderReceiptModal = () => {
   const { modalConfig, setModalConfig, invoices, settings, formatMoney, editItem, showToast } = useApp();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharingPdf, setIsSharingPdf] = useState(false);
 
   const order = modalConfig.data;
 
@@ -42,6 +43,18 @@ export const OrderReceiptModal = () => {
       showToast('Failed to generate PDF, opening print window.', 'error');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleSharePdfToWhatsApp = async () => {
+    setIsSharingPdf(true);
+    try {
+      await shareOrderReceiptPdfViaWhatsApp(order, 'printable-order-receipt', showToast);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to share PDF: ' + err.message, 'error');
+    } finally {
+      setIsSharingPdf(false);
     }
   };
 
@@ -207,11 +220,12 @@ export const OrderReceiptModal = () => {
             <button
               type="button"
               className="btn btn-whatsapp"
-              onClick={() => shareOrderReceiptViaWhatsApp(order, formatMoney)}
-              title="Share this receipt directly to customer's WhatsApp"
+              onClick={handleSharePdfToWhatsApp}
+              disabled={isSharingPdf || isDownloading}
+              title="Share this official PDF receipt directly to customer via WhatsApp"
             >
               <MessageCircle size={16} />
-              <span>Share to WhatsApp</span>
+              <span>{isSharingPdf ? 'Preparing PDF...' : 'Share PDF to WhatsApp'}</span>
             </button>
             {linkedInvoice && (
               <button

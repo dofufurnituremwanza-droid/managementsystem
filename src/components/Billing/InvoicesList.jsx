@@ -384,11 +384,11 @@ export const InvoicesList = () => {
 
                         <button
                           className="btn-whatsapp btn-sm"
-                          title={`Share ${inv.type === 'quotation' ? 'Quote' : 'Invoice'} to Customer via WhatsApp (${inv.clientPhone || 'Client'})`}
-                          onClick={() => shareInvoiceViaWhatsApp(inv, formatMoney)}
+                          title={`Share ${inv.type === 'quotation' ? 'Quote' : 'Invoice'} PDF to Customer via WhatsApp (${inv.clientPhone || 'Client'})`}
+                          onClick={() => setModalConfig({ type: 'print_invoice', data: inv })}
                         >
                           <MessageCircle size={13} />
-                          <span className="no-print">WhatsApp</span>
+                          <span className="no-print">WhatsApp PDF</span>
                         </button>
 
                         {balance > 0 && (

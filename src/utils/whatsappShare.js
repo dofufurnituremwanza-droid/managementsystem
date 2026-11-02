@@ -1,7 +1,9 @@
+import { generateReceiptPdfFile, downloadReceiptPdf } from './receiptDownloader';
+
 /**
  * WhatsApp Sharing Utilities for DOFU FURNITURE MWANZA
- * Generates formatted, luxury branded receipts and commercial invoices
- * for instant 1-click sharing to customers via WhatsApp.
+ * Generates and shares true PDF files and luxury formatted messages
+ * directly to customers via WhatsApp.
  */
 
 /**
@@ -22,7 +24,147 @@ export const normalizePhoneForWhatsApp = (rawPhone) => {
 };
 
 /**
- * Shares an Order & Deposit Payment Receipt to WhatsApp
+ * Shares an Official Commercial Invoice or Proforma Quote as a TRUE PDF FILE directly to WhatsApp.
+ * Uses Web Share API Level 2 on Mobile (iOS Safari, Android Chrome, Edge) to attach the actual .pdf file
+ * directly into the customer's WhatsApp chat.
+ * On Desktop / fallback environments, automatically saves/downloads the PDF and opens WhatsApp
+ * chat with the customer ready to send the file.
+ */
+export const shareInvoicePdfViaWhatsApp = async (invoice, elementId = 'printable-invoice', showToast) => {
+  if (!invoice) return;
+
+  const defaultPhone = normalizePhoneForWhatsApp(invoice.clientPhone);
+  let targetPhone = defaultPhone;
+
+  if (!targetPhone) {
+    const input = window.prompt(
+      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      invoice.clientPhone || '255'
+    );
+    if (!input) return;
+    targetPhone = normalizePhoneForWhatsApp(input);
+  }
+
+  const isQuote = invoice.type === 'quotation';
+  const docType = isQuote ? 'Proforma' : 'Invoice';
+  const cleanClient = (invoice.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `DOFU_${docType}_${invoice.invoiceNumber || 'INV'}_${cleanClient}`;
+
+  // 1. Generate the actual in-memory PDF file from the rendered invoice
+  let pdfFile = null;
+  try {
+    pdfFile = await generateReceiptPdfFile(filename, elementId);
+  } catch (err) {
+    console.warn('PDF generation error:', err);
+  }
+
+  // 2. If Web Share API supports file sharing (Mobile Safari, Android Chrome, etc.)
+  if (pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    try {
+      await navigator.share({
+        files: [pdfFile],
+        title: `${filename}.pdf`,
+        text: `Official ${docType} #${invoice.invoiceNumber || ''} from DOFU FURNITURE MWANZA`
+      });
+      if (showToast) {
+        showToast(`Official PDF ${docType} shared successfully to WhatsApp!`, 'success');
+      }
+      return;
+    } catch (shareErr) {
+      if (shareErr.name === 'AbortError') return; // User closed share sheet
+      console.warn('Native share failed, using download fallback:', shareErr);
+    }
+  }
+
+  // 3. Desktop / Browser Fallback:
+  // Automatically download the PDF file to user's device
+  try {
+    await downloadReceiptPdf(filename, elementId);
+  } catch (e) {}
+
+  // Open WhatsApp directly with client's chat
+  const introMsg = encodeURIComponent(
+    `Hello ${invoice.clientName || 'Valued Customer'},\n\nPlease find attached your official ${docType} #${invoice.invoiceNumber || ''} from DOFU FURNITURE MWANZA.\n\nThank you for choosing DOFU!`
+  );
+  const waUrl = targetPhone ? `https://wa.me/${targetPhone}?text=${introMsg}` : `https://wa.me/?text=${introMsg}`;
+  window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+  if (showToast) {
+    showToast(
+      `PDF ${docType} downloaded to your device! WhatsApp is opening so you can send the PDF file.`,
+      'success',
+      6000
+    );
+  }
+};
+
+/**
+ * Shares an Order & Deposit Payment Receipt as a TRUE PDF FILE directly to WhatsApp.
+ */
+export const shareOrderReceiptPdfViaWhatsApp = async (order, elementId = 'printable-order-receipt', showToast) => {
+  if (!order) return;
+
+  const defaultPhone = normalizePhoneForWhatsApp(order.clientPhone);
+  let targetPhone = defaultPhone;
+
+  if (!targetPhone) {
+    const input = window.prompt(
+      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      order.clientPhone || '255'
+    );
+    if (!input) return;
+    targetPhone = normalizePhoneForWhatsApp(input);
+  }
+
+  const cleanClient = (order.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `DOFU_Receipt_${order.orderNumber || 'ORD'}_${cleanClient}`;
+
+  let pdfFile = null;
+  try {
+    pdfFile = await generateReceiptPdfFile(filename, elementId);
+  } catch (err) {
+    console.warn('PDF generation error:', err);
+  }
+
+  if (pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    try {
+      await navigator.share({
+        files: [pdfFile],
+        title: `${filename}.pdf`,
+        text: `Official Order & Payment Receipt #${order.orderNumber || ''} from DOFU FURNITURE MWANZA`
+      });
+      if (showToast) {
+        showToast('Official PDF Receipt shared successfully to WhatsApp!', 'success');
+      }
+      return;
+    } catch (shareErr) {
+      if (shareErr.name === 'AbortError') return;
+      console.warn('Native share failed, using download fallback:', shareErr);
+    }
+  }
+
+  // Desktop / Browser Fallback:
+  try {
+    await downloadReceiptPdf(filename, elementId);
+  } catch (e) {}
+
+  const introMsg = encodeURIComponent(
+    `Hello ${order.clientName || 'Valued Customer'},\n\nPlease find attached your official Order & Payment Receipt #${order.orderNumber || ''} from DOFU FURNITURE MWANZA.\n\nThank you for choosing DOFU!`
+  );
+  const waUrl = targetPhone ? `https://wa.me/${targetPhone}?text=${introMsg}` : `https://wa.me/?text=${introMsg}`;
+  window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+  if (showToast) {
+    showToast(
+      'PDF Receipt downloaded to your device! WhatsApp is opening so you can send the PDF file.',
+      'success',
+      6000
+    );
+  }
+};
+
+/**
+ * Shares an Order & Deposit Payment Receipt as a formatted text message to WhatsApp
  */
 export const shareOrderReceiptViaWhatsApp = (order, formatMoneyFn) => {
   if (!order) return;
@@ -30,7 +172,6 @@ export const shareOrderReceiptViaWhatsApp = (order, formatMoneyFn) => {
   const defaultPhone = normalizePhoneForWhatsApp(order.clientPhone);
   let targetPhone = defaultPhone;
 
-  // If no phone or user wants to verify/send to another number
   if (!targetPhone) {
     const input = window.prompt(
       'Enter customer WhatsApp phone number (e.g., 0769456793 or 255769456793):',
@@ -89,7 +230,7 @@ export const shareOrderReceiptViaWhatsApp = (order, formatMoneyFn) => {
 };
 
 /**
- * Shares an Official Commercial Invoice or Proforma Quote to WhatsApp
+ * Shares an Official Commercial Invoice or Proforma Quote as a formatted text message to WhatsApp
  */
 export const shareInvoiceViaWhatsApp = (invoice, formatMoneyFn) => {
   if (!invoice) return;
@@ -117,7 +258,6 @@ export const shareInvoiceViaWhatsApp = (invoice, formatMoneyFn) => {
   const issueDate = invoice.issueDate || new Date().toISOString().split('T')[0];
   const dueDate = invoice.dueDate || 'Upon Delivery';
 
-  // Format line items
   const itemsText = (invoice.items || [])
     .map((item, idx) => {
       const q = Number(item.quantity) || 1;

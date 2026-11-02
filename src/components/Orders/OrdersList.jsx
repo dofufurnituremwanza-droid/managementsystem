@@ -508,11 +508,11 @@ export const OrdersList = () => {
 
                         <button
                           className="btn-whatsapp btn-sm"
-                          title={`Share Order Receipt to Customer via WhatsApp (${order.clientPhone || 'Client'})`}
-                          onClick={() => shareOrderReceiptViaWhatsApp(order, formatMoney)}
+                          title={`Share Order PDF Receipt to Customer via WhatsApp (${order.clientPhone || 'Client'})`}
+                          onClick={() => setModalConfig({ type: 'order_receipt', data: order })}
                         >
                           <MessageCircle size={13} />
-                          <span className="no-print">WhatsApp</span>
+                          <span className="no-print">WhatsApp PDF</span>
                         </button>
 
                         <button
