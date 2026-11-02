@@ -16,7 +16,7 @@ import {
   Calendar,
   MessageCircle
 } from 'lucide-react';
-import { normalizePhoneForWhatsApp } from '../../utils/whatsappShare';
+import { normalizePhoneForWhatsApp, openWhatsAppDirect } from '../../utils/whatsappShare';
 
 export const ClientsList = () => {
   const { clients, orders, invoices, staff, setModalConfig, removeItem } = useApp();
@@ -180,10 +180,12 @@ export const ClientsList = () => {
                             type="button"
                             className="btn-whatsapp btn-sm"
                             style={{ padding: '2px 8px', fontSize: '0.7rem', height: '22px' }}
-                            title={`Chat with ${client.name} on WhatsApp`}
+                            title={`Chat with ${client.name} on WhatsApp or WhatsApp Business`}
                             onClick={() => {
-                              const p = normalizePhoneForWhatsApp(client.phone);
-                              if (p) window.open(`https://wa.me/${p}`, '_blank', 'noopener,noreferrer');
+                              openWhatsAppDirect(
+                                client.phone,
+                                `Hello ${client.name || 'Valued Customer'},\n\nGreetings from DOFU FURNITURE MWANZA!`
+                              );
                             }}
                           >
                             <MessageCircle size={11} />

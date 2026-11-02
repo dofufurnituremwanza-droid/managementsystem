@@ -67,16 +67,17 @@ export const generateReceiptPdfFile = async (arg1, arg2) => {
   }
 
   const cleanName = (rawFilename || 'DOFU-Document').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   const opt = {
-    margin: [8, 8, 8, 8],
+    margin: [6, 6, 6, 6],
     filename: `${cleanName}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.95 },
     html2canvas: {
-      scale: 2,
+      scale: isMobile ? 1.4 : 2,
       useCORS: true,
       allowTaint: true,
-      letterRendering: true,
+      letterRendering: false,
       logging: false,
       scrollY: 0,
       scrollX: 0
@@ -88,7 +89,10 @@ export const generateReceiptPdfFile = async (arg1, arg2) => {
     const worker = html2pdf().set(opt).from(el);
     const pdfBlob = await worker.output('blob');
     if (!pdfBlob) return null;
-    return new File([pdfBlob], `${cleanName}.pdf`, { type: 'application/pdf' });
+    return new File([pdfBlob], `${cleanName}.pdf`, {
+      type: 'application/pdf',
+      lastModified: Date.now()
+    });
   } catch (err) {
     console.error('Error creating PDF file:', err);
     return null;

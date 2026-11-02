@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck, MessageCircle } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, MessageCircle, MessageSquare } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 import { shareInvoicePdfViaWhatsApp, shareInvoiceViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
@@ -157,6 +157,17 @@ export const InvoicePrintView = () => {
     }
   };
 
+  const handleShareTextToWhatsApp = () => {
+    const payloadToShare = {
+      ...invoice,
+      items: resolvedItems,
+      subtotal: resolvedSubtotal,
+      totalAmount: resolvedTotal,
+      amountPaid: resolvedAmountPaid
+    };
+    shareInvoiceViaWhatsApp(payloadToShare, formatMoney);
+  };
+
   const handleMarkPaidInFull = async () => {
     const confirmed = window.confirm(
       `Confirm Final Payment on Delivery for Invoice ${invoice.invoiceNumber}?\n\n` +
@@ -249,10 +260,20 @@ export const InvoicePrintView = () => {
               className="btn btn-whatsapp"
               onClick={handleSharePdfToWhatsApp}
               disabled={isSharingPdf || isDownloading}
-              title={`Share official PDF ${isQuote ? 'proforma quote' : 'invoice'} directly to customer via WhatsApp`}
+              title={`Share official PDF ${isQuote ? 'proforma quote' : 'invoice'} directly to customer via WhatsApp or WhatsApp Business`}
             >
               <MessageCircle size={16} />
               <span>{isSharingPdf ? 'Preparing PDF...' : 'Share PDF to WhatsApp'}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-whatsapp"
+              style={{ background: 'linear-gradient(135deg, #128c7e, #075e54)' }}
+              onClick={handleShareTextToWhatsApp}
+              title="Send invoice details and summary directly to customer's WhatsApp or WhatsApp Business"
+            >
+              <MessageSquare size={16} />
+              <span>Send WhatsApp Message</span>
             </button>
             <button
               className="btn btn-outline-gold"

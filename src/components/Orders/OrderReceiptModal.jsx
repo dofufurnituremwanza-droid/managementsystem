@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText, MessageCircle } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText, MessageCircle, MessageSquare } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 import { shareOrderReceiptPdfViaWhatsApp, shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
@@ -89,6 +89,16 @@ export const OrderReceiptModal = () => {
     } finally {
       setIsSharingPdf(false);
     }
+  };
+
+  const handleShareTextToWhatsApp = () => {
+    const payloadToShare = {
+      ...order,
+      totalPrice: resolvedTotal,
+      unitPrice: resolvedUnit,
+      depositPaid: Number(order.depositPaid) || 0
+    };
+    shareOrderReceiptViaWhatsApp(payloadToShare, formatMoney);
   };
 
   const handleMarkPaidInFull = async () => {
@@ -255,10 +265,20 @@ export const OrderReceiptModal = () => {
               className="btn btn-whatsapp"
               onClick={handleSharePdfToWhatsApp}
               disabled={isSharingPdf || isDownloading}
-              title="Share this official PDF receipt directly to customer via WhatsApp"
+              title="Share this official PDF receipt directly to customer via WhatsApp or WhatsApp Business"
             >
               <MessageCircle size={16} />
               <span>{isSharingPdf ? 'Preparing PDF...' : 'Share PDF to WhatsApp'}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-whatsapp"
+              style={{ background: 'linear-gradient(135deg, #128c7e, #075e54)' }}
+              onClick={handleShareTextToWhatsApp}
+              title="Send order and payment details directly to customer's WhatsApp or WhatsApp Business"
+            >
+              <MessageSquare size={16} />
+              <span>Send WhatsApp Message</span>
             </button>
             {linkedInvoice && (
               <button
