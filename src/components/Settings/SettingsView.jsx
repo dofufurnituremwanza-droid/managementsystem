@@ -19,7 +19,10 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Key
+  Key,
+  Sun,
+  Moon,
+  Check
 } from 'lucide-react';
 import { FIRESTORE_RULES } from '../../firebase/securityRules';
 
@@ -39,7 +42,9 @@ export const SettingsView = () => {
     expenses,
     staff,
     addStaff,
-    removeStaff
+    removeStaff,
+    theme,
+    setTheme
   } = useApp();
 
   const [formData, setFormData] = useState({ ...settings });
@@ -170,6 +175,155 @@ export const SettingsView = () => {
               <span>{syncing ? 'Syncing...' : 'Sync Cloud Records'}</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* SECTION FOR DARK AND LIGHT MODE */}
+      <div className="card" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+          <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.15)', color: 'var(--gold-primary)' }}>
+            <Sun size={22} />
+          </div>
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
+              Display Theme & Appearance (Dark & Light Mode)
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+              Choose your preferred visual mode for showroom displays, office computers, and workshop tablets
+            </p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px'
+          }}
+        >
+          {/* Dark Mode Card */}
+          <div
+            onClick={() => setTheme('dark')}
+            style={{
+              cursor: 'pointer',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              border: theme === 'dark' ? '2px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
+              background: theme === 'dark' ? 'rgba(197, 160, 89, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              position: 'relative',
+              transition: 'all 0.2s ease',
+              boxShadow: theme === 'dark' ? '0 4px 20px rgba(197, 160, 89, 0.15)' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#12151b',
+                    color: '#e5c07b',
+                    border: '1px solid rgba(197, 160, 89, 0.3)'
+                  }}
+                >
+                  <Moon size={18} />
+                </span>
+                <div>
+                  <strong style={{ fontSize: '1rem', color: '#fff', display: 'block' }}>Dark Luxury Mode</strong>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>Recommended Default</span>
+                </div>
+              </div>
+
+              {theme === 'dark' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    background: 'var(--gold-primary)',
+                    color: '#0c0e12',
+                    fontSize: '0.72rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <Check size={12} strokeWidth={3} />
+                  Active
+                </span>
+              )}
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+              Deep obsidian styling with glowing Tanzanian hardwood & gold accents. Ideal for low-light environments and battery saving.
+            </p>
+          </div>
+
+          {/* Light Mode Card */}
+          <div
+            onClick={() => setTheme('light')}
+            style={{
+              cursor: 'pointer',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              border: theme === 'light' ? '2px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
+              background: theme === 'light' ? 'rgba(197, 160, 89, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              position: 'relative',
+              transition: 'all 0.2s ease',
+              boxShadow: theme === 'light' ? '0 4px 20px rgba(197, 160, 89, 0.15)' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    color: '#b8860b',
+                    border: '1px solid rgba(184, 134, 11, 0.4)'
+                  }}
+                >
+                  <Sun size={18} />
+                </span>
+                <div>
+                  <strong style={{ fontSize: '1rem', color: '#fff', display: 'block' }}>Light Luxury Mode</strong>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>High Clarity Display</span>
+                </div>
+              </div>
+
+              {theme === 'light' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    background: 'var(--gold-primary)',
+                    color: '#0c0e12',
+                    fontSize: '0.72rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <Check size={12} strokeWidth={3} />
+                  Active
+                </span>
+              )}
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+              Crisp ivory surfaces with refined golden oak accents and dark charcoal typography. Perfect for bright daylight showrooms.
+            </p>
+          </div>
         </div>
       </div>
 

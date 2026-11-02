@@ -9,7 +9,9 @@ import {
   FileText,
   UserPlus,
   Receipt,
-  Database
+  Database,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const TAB_META = {
@@ -31,7 +33,9 @@ export const Header = () => {
     setModalConfig,
     currentUser,
     isOwner,
-    isAssistant
+    isAssistant,
+    theme,
+    toggleTheme
   } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -68,6 +72,27 @@ export const Header = () => {
       </div>
 
       <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Dark / Light Mode Quick Toggle */}
+        <button
+          type="button"
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle Dark and Light Mode"
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun size={15} color="#e5c07b" />
+              <span>Light</span>
+            </>
+          ) : (
+            <>
+              <Moon size={15} color="#b8860b" />
+              <span>Dark</span>
+            </>
+          )}
+        </button>
+
         {/* Role Pill */}
         <div
           style={{

@@ -98,6 +98,36 @@ export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => getStoredSession());
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getStoredSession()));
 
+  // Theme State: 'dark' (luxury default) or 'light'
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dofu_theme');
+      return savedTheme === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('dofu_theme', theme);
+    } catch (e) {
+      console.warn('Storage error', e);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const setTheme = (mode) => {
+    if (mode === 'dark' || mode === 'light') {
+      setThemeState(mode);
+    }
+  };
+
   const isOwner = currentUser?.role === 'owner' || (!currentUser?.role && currentUser?.username === 'DOFU');
   const isAssistant = currentUser?.role === 'assistant';
 
@@ -438,7 +468,11 @@ export const AppProvider = ({ children }) => {
         toast,
         showToast,
         // Helpers
-        formatMoney
+        formatMoney,
+        // Theme (Dark / Light)
+        theme,
+        setTheme,
+        toggleTheme
       }}
     >
       {children}

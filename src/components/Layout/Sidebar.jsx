@@ -12,6 +12,8 @@ import {
   Database,
   RefreshCw,
   LogOut,
+  Sun,
+  Moon,
   X
 } from 'lucide-react';
 
@@ -26,6 +28,8 @@ export const Sidebar = () => {
     isOwner,
     isAssistant,
     logout,
+    theme,
+    toggleTheme,
     orders,
     projects,
     invoices,
@@ -158,14 +162,24 @@ export const Sidebar = () => {
               </div>
             </div>
 
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '5px 8px', color: 'var(--text-secondary)', flexShrink: 0 }}
-              onClick={logout}
-              title="Sign Out / Lock Portal"
-            >
-              <LogOut size={14} />
-            </button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '5px 8px', color: 'var(--text-secondary)', flexShrink: 0 }}
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun size={14} color="#e5c07b" /> : <Moon size={14} color="#b8860b" />}
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '5px 8px', color: 'var(--text-secondary)', flexShrink: 0 }}
+                onClick={logout}
+                title="Sign Out / Lock Portal"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
