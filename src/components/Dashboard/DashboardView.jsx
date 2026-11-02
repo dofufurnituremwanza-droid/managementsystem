@@ -6,16 +6,13 @@ import {
   FileText,
   Users,
   DollarSign,
-  Boxes,
   Clock,
   ArrowRight,
   TrendingUp,
-  AlertTriangle,
   Plus,
   CheckCircle2,
-  Database,
-  BookOpen,
-  Pin
+  Pin,
+  Receipt
 } from 'lucide-react';
 
 export const DashboardView = () => {
@@ -34,24 +31,41 @@ export const DashboardView = () => {
     currentUser
   } = useApp();
 
-  // Financial calculations (Owner only)
-  const totalInvoiced = invoices
-    .filter((i) => i.type !== 'quotation')
-    .reduce((sum, i) => sum + (Number(i.totalAmount) || 0), 0);
+  // 1. Number of orders recorded
+  const totalOrdersCount = orders.length;
 
-  const totalCollected = invoices
-    .filter((i) => i.type !== 'quotation')
-    .reduce((sum, i) => sum + (Number(i.amountPaid) || 0), 0);
+  // 2. Paid in full
+  const paidInFullOrders = orders.filter((o) => {
+    const total = Number(o.totalPrice) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return (total > 0 && deposit >= total) || o.status === 'delivered';
+  });
+  const paidInFullCount = paidInFullOrders.length;
 
-  const totalOutstanding = Math.max(0, totalInvoiced - totalCollected);
+  // 3. Partial paid
+  const partialPaidOrders = orders.filter((o) => {
+    const total = Number(o.totalPrice) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return deposit > 0 && deposit < total && o.status !== 'delivered';
+  });
+  const partialPaidCount = partialPaidOrders.length;
 
-  // Operational metrics
+  // 4. Revenue generated from the orders
+  const revenueFromOrders = orders.reduce(
+    (sum, o) => sum + (Number(o.depositPaid) || 0),
+    0
+  );
+
+  // 5. Expenses spent
+  const totalExpensesSpent = expenses.reduce(
+    (sum, e) => sum + (Number(e.amount) || 0),
+    0
+  );
+
+  // Operational pipeline states
   const activeOrders = orders.filter(
     (o) => o.status !== 'delivered' && o.status !== 'cancelled'
   );
-
-  const readyOrders = orders.filter((o) => o.status === 'ready');
-  const deliveredOrders = orders.filter((o) => o.status === 'delivered');
 
   const activeProjects = projects.filter(
     (p) => p.stage !== 'completed' && p.stage !== 'cancelled'
@@ -65,75 +79,17 @@ export const DashboardView = () => {
 
   return (
     <div>
-      {/* Top Metric Cards: Owner sees Financials & Operations; Assistant sees strictly Operations */}
+      {/* Top 5 Metrics: Orders Recorded, Paid in Full, Partial Paid, Revenue Generated, Expenses Spent */}
       {isOwner ? (
         <div className="stats-grid">
+          {/* 1. Orders Recorded */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Collected Revenue</div>
-              <div className="stat-value" style={{ color: '#10b981' }}>
-                {formatMoney(totalCollected)}
-              </div>
+              <div className="stat-label">Orders Recorded</div>
+              <div className="stat-value">{totalOrdersCount}</div>
               <div className="stat-note">
-                <TrendingUp size={13} color="#10b981" />
-                <span>Realized client payments</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-              <DollarSign size={22} />
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Receivables Outstanding</div>
-              <div className="stat-value" style={{ color: totalOutstanding > 0 ? '#f59e0b' : '#fff' }}>
-                {formatMoney(totalOutstanding)}
-              </div>
-              <div className="stat-note">
-                <span>Client deposit & handover balances</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
-              <FileText size={22} />
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Active Workshop Orders</div>
-              <div className="stat-value">{activeOrders.length}</div>
-              <div className="stat-note">
-                <span>Furniture pieces in production</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap">
-              <Armchair size={22} />
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Active Interior Projects</div>
-              <div className="stat-value">{activeProjects.length}</div>
-              <div className="stat-note">
-                <span>Sites currently undergoing fit-out</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap">
-              <Compass size={22} />
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Assistant Operational Stats */
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Active Orders In Production</div>
-              <div className="stat-value" style={{ color: 'var(--gold-primary)' }}>{activeOrders.length}</div>
-              <div className="stat-note">
-                <span>Bespoke items in carpentry & upholstery</span>
+                <Armchair size={13} color="var(--gold-primary)" />
+                <span>Total customer orders</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.12)', color: 'var(--gold-primary)' }}>
@@ -141,12 +97,16 @@ export const DashboardView = () => {
             </div>
           </div>
 
+          {/* 2. Paid in Full */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Ready for Client Dispatch</div>
-              <div className="stat-value" style={{ color: '#10b981' }}>{readyOrders.length}</div>
+              <div className="stat-label">Paid in Full</div>
+              <div className="stat-value" style={{ color: '#10b981' }}>
+                {paidInFullCount}
+              </div>
               <div className="stat-note">
-                <span>Inspection passed & waiting delivery</span>
+                <CheckCircle2 size={13} color="#10b981" />
+                <span>100% balance settled</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
@@ -154,29 +114,113 @@ export const DashboardView = () => {
             </div>
           </div>
 
+          {/* 3. Partial Paid */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Clients Registered</div>
-              <div className="stat-value">{clients.length}</div>
+              <div className="stat-label">Partial Paid</div>
+              <div className="stat-value" style={{ color: '#f59e0b' }}>
+                {partialPaidCount}
+              </div>
               <div className="stat-note">
-                <span>Directory & CRM customer contacts</span>
+                <Clock size={13} color="#f59e0b" />
+                <span>Advance deposit received</span>
               </div>
             </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' }}>
-              <Users size={22} />
+            <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+              <Clock size={22} />
             </div>
           </div>
 
+          {/* 4. Revenue Generated from Orders */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Completed & Delivered</div>
-              <div className="stat-value">{deliveredOrders.length}</div>
+              <div className="stat-label">Revenue Generated</div>
+              <div className="stat-value" style={{ color: '#10b981' }}>
+                {formatMoney(revenueFromOrders)}
+              </div>
               <div className="stat-note">
-                <span>Delivered to customers</span>
+                <TrendingUp size={13} color="#10b981" />
+                <span>Realized from orders</span>
               </div>
             </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+              <DollarSign size={22} />
+            </div>
+          </div>
+
+          {/* 5. Expenses Spent */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Expenses Spent</div>
+              <div className="stat-value" style={{ color: '#ef4444' }}>
+                {formatMoney(totalExpensesSpent)}
+              </div>
+              <div className="stat-note">
+                <Receipt size={13} color="#ef4444" />
+                <span>Workshop materials & costs</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+              <Receipt size={22} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Assistant Operational Stats */
+        <div className="stats-grid">
+          {/* Orders Recorded */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Orders Recorded</div>
+              <div className="stat-value">{totalOrdersCount}</div>
+              <div className="stat-note">
+                <span>Total orders logged</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.12)', color: 'var(--gold-primary)' }}>
+              <Armchair size={22} />
+            </div>
+          </div>
+
+          {/* Paid in Full */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Paid in Full</div>
+              <div className="stat-value" style={{ color: '#10b981' }}>{paidInFullCount}</div>
+              <div className="stat-note">
+                <span>100% balance settled</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+              <CheckCircle2 size={22} />
+            </div>
+          </div>
+
+          {/* Partial Paid */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Partial Paid</div>
+              <div className="stat-value" style={{ color: '#f59e0b' }}>{partialPaidCount}</div>
+              <div className="stat-note">
+                <span>Advance deposit received</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
               <Clock size={22} />
+            </div>
+          </div>
+
+          {/* Active in Production */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">In Production</div>
+              <div className="stat-value" style={{ color: '#60a5fa' }}>{activeOrders.length}</div>
+              <div className="stat-note">
+                <span>Currently in workshop</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }}>
+              <Users size={22} />
             </div>
           </div>
         </div>
