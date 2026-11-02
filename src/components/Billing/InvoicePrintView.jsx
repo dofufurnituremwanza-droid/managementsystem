@@ -6,7 +6,7 @@ import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 import confetti from 'canvas-confetti';
 
 export const InvoicePrintView = () => {
-  const { modalConfig, setModalConfig, settings, formatMoney, editItem, showToast } = useApp();
+  const { modalConfig, setModalConfig, orders, settings, formatMoney, editItem, showToast } = useApp();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -56,6 +56,22 @@ export const InvoicePrintView = () => {
         amountPaid: totalAmount,
         status: 'paid'
       });
+
+      // Synchronize linked order if present
+      if (invoice.orderId || invoice.orderNumber) {
+        const linkedOrder = orders?.find(
+          (o) =>
+            (invoice.orderId && o.id === invoice.orderId) ||
+            (invoice.orderNumber && o.orderNumber === invoice.orderNumber)
+        );
+        if (linkedOrder) {
+          await editItem('orders', linkedOrder.id, {
+            depositPaid: totalAmount,
+            isPaidInFull: true,
+            status: 'delivered'
+          });
+        }
+      }
 
       // Update in-modal data so it reflects immediately
       setModalConfig((prev) => ({
@@ -222,6 +238,24 @@ export const InvoicePrintView = () => {
             >
               {invoice.invoiceNumber || 'INV-001'}
             </div>
+            {invoice.orderNumber && (
+              <div
+                style={{
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono)',
+                  color: '#1d4ed8',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  marginTop: '3px',
+                  display: 'inline-block',
+                  fontWeight: 700
+                }}
+              >
+                Order Ref: #{invoice.orderNumber}
+              </div>
+            )}
             <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '4px' }}>
               Issue Date: <strong>{invoice.issueDate || new Date().toISOString().split('T')[0]}</strong>
             </div>

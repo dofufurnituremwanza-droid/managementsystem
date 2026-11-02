@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 import confetti from 'canvas-confetti';
 
 export const OrderReceiptModal = () => {
-  const { modalConfig, setModalConfig, settings, formatMoney, editItem, showToast } = useApp();
+  const { modalConfig, setModalConfig, invoices, settings, formatMoney, editItem, showToast } = useApp();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const order = modalConfig.data;
 
   if (modalConfig.type !== 'order_receipt' || !order) return null;
+
+  const linkedInvoice = invoices?.find(
+    (inv) =>
+      (order.id && inv.orderId === order.id) ||
+      (order.orderNumber && inv.orderNumber === order.orderNumber) ||
+      (order.invoiceId && inv.id === order.invoiceId)
+  );
 
   const totalPrice = Number(order.totalPrice) || 0;
   const depositPaid = Number(order.depositPaid) || 0;
@@ -57,6 +64,14 @@ export const OrderReceiptModal = () => {
         previousDeposit: prevDeposit,
         previousStatus: prevStatus
       });
+
+      // Synchronize linked invoice if present
+      if (linkedInvoice) {
+        await editItem('invoices', linkedInvoice.id, {
+          amountPaid: totalPrice,
+          status: 'paid'
+        });
+      }
 
       // Update in-modal data so the receipt updates in real-time
       setModalConfig((prev) => ({
@@ -108,6 +123,14 @@ export const OrderReceiptModal = () => {
         depositPaid: restoredDeposit,
         status: restoredStatus
       });
+
+      // Synchronize linked invoice if present
+      if (linkedInvoice) {
+        await editItem('invoices', linkedInvoice.id, {
+          amountPaid: restoredDeposit,
+          status: restoredDeposit >= totalPrice && totalPrice > 0 ? 'paid' : restoredDeposit > 0 ? 'partial' : 'unpaid'
+        });
+      }
 
       setModalConfig((prev) => ({
         ...prev,
@@ -180,6 +203,16 @@ export const OrderReceiptModal = () => {
             <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
               Close
             </button>
+            {linkedInvoice && (
+              <button
+                className="btn btn-outline-gold"
+                onClick={() => setModalConfig({ type: 'print_invoice', data: linkedInvoice })}
+                title={`Open and print official commercial invoice #${linkedInvoice.invoiceNumber}`}
+              >
+                <FileText size={16} />
+                <span>View Official Invoice ({linkedInvoice.invoiceNumber})</span>
+              </button>
+            )}
             <button
               className="btn btn-outline-gold"
               onClick={handleDownloadPdf}
@@ -197,6 +230,94 @@ export const OrderReceiptModal = () => {
         </div>
       }
     >
+      {/* Auto-Prepared Commercial Invoice Banner */}
+      {linkedInvoice && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, rgba(197, 160, 89, 0.15) 0%, rgba(139, 90, 43, 0.12) 100%)',
+            border: '1px solid rgba(197, 160, 89, 0.4)',
+            borderRadius: '10px',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                background: 'rgba(197, 160, 89, 0.22)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--gold-light)'
+              }}
+            >
+              <FileText size={18} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  color: 'var(--text-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <span>Official Commercial Invoice Auto-Prepared:</span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--gold-light)',
+                    background: 'rgba(197, 160, 89, 0.2)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700
+                  }}
+                >
+                  #{linkedInvoice.invoiceNumber}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    background: '#059669',
+                    color: '#fff',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontWeight: 600
+                  }}
+                >
+                  Ready in Billing ✓
+                </span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                Full commercial invoice was automatically generated from this order. No manual re-typing required.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-gold"
+            onClick={() => setModalConfig({ type: 'print_invoice', data: linkedInvoice })}
+            style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Printer size={14} />
+            <span>Open & Print Invoice →</span>
+          </button>
+        </div>
+      )}
+
       {/* Interactive Settlement Banner: Mark or Unmark Paid in Full */}
       {!isFullyPaid ? (
         <div className="btn-tick-settle-modal" onClick={handleMarkPaidInFull} title="Click to settle remaining balance upon delivery">

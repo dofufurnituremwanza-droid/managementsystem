@@ -5,7 +5,7 @@ import { ImageUploader } from '../Common/ImageUploader';
 import confetti from 'canvas-confetti';
 
 export const OrderModal = () => {
-  const { modalConfig, setModalConfig, clients, addItem, editItem } = useApp();
+  const { modalConfig, setModalConfig, clients, invoices, addItem, editItem, showToast } = useApp();
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
 
@@ -132,20 +132,144 @@ export const OrderModal = () => {
       dueDate: deliveryDate
     };
 
+    // Find if a linked invoice already exists
+    const existingInvoice = invoices?.find(
+      (inv) =>
+        (existing.id && inv.orderId === existing.id) ||
+        (formData.orderNumber && inv.orderNumber === formData.orderNumber)
+    );
+
+    const invoiceNum =
+      existingInvoice?.invoiceNumber ||
+      `INV-${formData.orderNumber.replace(/^[A-Za-z]+-?/, '') || Math.floor(1000 + Math.random() * 9000)}`;
+
+    const selectedClient = clients?.find(
+      (c) => c.id === formData.clientId || c.name === formData.clientName
+    );
+    const clientAddress = selectedClient?.address || selectedClient?.deliveryAddress || '';
+
+    const totalPrice = Number(formData.totalPrice) || 0;
+    const depositPaid = Number(formData.depositPaid) || 0;
+    const invStatus =
+      depositPaid >= totalPrice && totalPrice > 0
+        ? 'paid'
+        : depositPaid > 0
+        ? 'partial'
+        : 'unpaid';
+
+    const itemDesc = `${finalItemName}${formData.color ? ` - Color: ${formData.color}` : ''}${
+      formData.dimensions ? ` (${formData.dimensions})` : ''
+    }`;
+
+    const invoiceItem = {
+      description: itemDesc,
+      quantity: Number(formData.quantity) || 1,
+      unitPrice: Number(formData.unitPrice) || 0,
+      imageUrl: formData.imageUrl || ''
+    };
+
     let savedRecord = null;
+    let savedInvoiceId = existingInvoice?.id || null;
+
     if (isEditing) {
-      savedRecord = await editItem('orders', existing.id, payload);
+      savedRecord = await editItem('orders', existing.id, {
+        ...payload,
+        invoiceNumber: invoiceNum
+      });
+
+      const invoicePayload = {
+        type: 'invoice',
+        invoiceNumber: invoiceNum,
+        orderId: existing.id,
+        orderNumber: formData.orderNumber,
+        clientId: formData.clientId || selectedClient?.id || '',
+        clientName: formData.clientName,
+        clientPhone: formData.clientPhone || selectedClient?.phone || '',
+        clientAddress: clientAddress,
+        issueDate: formData.orderDate || todayStr,
+        dueDate: deliveryDate || formData.orderDate || todayStr,
+        items: [invoiceItem],
+        subtotal: totalPrice,
+        discount: 0,
+        taxRate: 0,
+        taxAmount: 0,
+        totalAmount: totalPrice,
+        amountPaid: depositPaid,
+        paymentMethod: 'Bank Transfer / Cash',
+        status: invStatus,
+        notes: `Official Commercial Invoice for Order #${formData.orderNumber}. Category: ${
+          formData.category || 'Custom Furniture'
+        }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
+      };
+
+      if (existingInvoice) {
+        await editItem('invoices', existingInvoice.id, invoicePayload);
+      } else {
+        const createdInv = await addItem('invoices', invoicePayload);
+        savedInvoiceId = createdInv?.id;
+      }
+
+      showToast(`Order #${formData.orderNumber} & Official Invoice #${invoiceNum} updated!`, 'success');
     } else {
-      savedRecord = await addItem('orders', payload);
+      savedRecord = await addItem('orders', {
+        ...payload,
+        invoiceNumber: invoiceNum
+      });
+
+      const invoicePayload = {
+        type: 'invoice',
+        invoiceNumber: invoiceNum,
+        orderId: savedRecord?.id || '',
+        orderNumber: formData.orderNumber,
+        clientId: formData.clientId || selectedClient?.id || '',
+        clientName: formData.clientName,
+        clientPhone: formData.clientPhone || selectedClient?.phone || '',
+        clientAddress: clientAddress,
+        issueDate: formData.orderDate || todayStr,
+        dueDate: deliveryDate || formData.orderDate || todayStr,
+        items: [invoiceItem],
+        subtotal: totalPrice,
+        discount: 0,
+        taxRate: 0,
+        taxAmount: 0,
+        totalAmount: totalPrice,
+        amountPaid: depositPaid,
+        paymentMethod: 'Bank Transfer / Cash',
+        status: invStatus,
+        notes: `Auto-generated official invoice for Customer Order #${formData.orderNumber}. Category: ${
+          formData.category || 'Custom Furniture'
+        }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
+      };
+
+      const createdInv = await addItem('invoices', invoicePayload);
+      savedInvoiceId = createdInv?.id;
+
+      if (savedRecord?.id && createdInv?.id) {
+        await editItem('orders', savedRecord.id, {
+          invoiceId: createdInv.id,
+          invoiceNumber: invoiceNum
+        });
+      }
+
       try {
-        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
       } catch (err) {}
+
+      showToast(
+        `Order #${formData.orderNumber} recorded & Official Invoice #${invoiceNum} automatically prepared!`,
+        'success'
+      );
     }
 
-    // Automatically open Order & Deposit Payment Receipt for download and print
+    // Automatically open Order & Deposit Payment Receipt with instant link to official invoice
     setModalConfig({
       type: 'order_receipt',
-      data: { ...payload, id: savedRecord?.id || existing.id }
+      data: {
+        ...payload,
+        id: savedRecord?.id || existing.id,
+        invoiceId: savedInvoiceId,
+        invoiceNumber: invoiceNum
+      }
     });
   };
 

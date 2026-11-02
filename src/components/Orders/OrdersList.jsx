@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const OrdersList = () => {
-  const { orders, staff, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
+  const { orders, invoices, staff, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [staffFilter, setStaffFilter] = useState('all');
@@ -96,6 +96,20 @@ export const OrdersList = () => {
       status: 'delivered'
     });
 
+    // Synchronize linked invoice
+    const linkedInvoice = invoices?.find(
+      (inv) =>
+        (order.id && inv.orderId === order.id) ||
+        (order.orderNumber && inv.orderNumber === order.orderNumber) ||
+        (order.invoiceId && inv.id === order.invoiceId)
+    );
+    if (linkedInvoice) {
+      await editItem('invoices', linkedInvoice.id, {
+        amountPaid: total,
+        status: 'paid'
+      });
+    }
+
     try {
       confetti({
         particleCount: 85,
@@ -123,6 +137,21 @@ export const OrdersList = () => {
       isPaidInFull: false,
       status: order.previousStatus || 'ready'
     });
+
+    // Synchronize linked invoice
+    const linkedInvoice = invoices?.find(
+      (inv) =>
+        (order.id && inv.orderId === order.id) ||
+        (order.orderNumber && inv.orderNumber === order.orderNumber) ||
+        (order.invoiceId && inv.id === order.invoiceId)
+    );
+    if (linkedInvoice) {
+      const invTotal = Number(linkedInvoice.totalAmount) || 0;
+      await editItem('invoices', linkedInvoice.id, {
+        amountPaid: restoredDeposit,
+        status: restoredDeposit >= invTotal && invTotal > 0 ? 'paid' : restoredDeposit > 0 ? 'partial' : 'unpaid'
+      });
+    }
 
     showToast(`Order ${order.orderNumber} unmarked. Reverted to partial payment (${formatMoney(restoredDeposit)}).`, 'warning');
   };
@@ -241,6 +270,12 @@ export const OrdersList = () => {
             <tbody>
               {filtered.map((order) => {
                 const balance = (Number(order.totalPrice) || 0) - (Number(order.depositPaid) || 0);
+                const linkedInvoice = invoices?.find(
+                  (inv) =>
+                    (order.id && inv.orderId === order.id) ||
+                    (order.orderNumber && inv.orderNumber === order.orderNumber) ||
+                    (order.invoiceId && inv.id === order.invoiceId)
+                );
 
                 return (
                   <tr key={order.id}>
@@ -280,6 +315,30 @@ export const OrdersList = () => {
                           >
                             {order.orderNumber}
                           </div>
+                          {linkedInvoice && (
+                            <div
+                              onClick={() => setModalConfig({ type: 'print_invoice', data: linkedInvoice })}
+                              style={{
+                                fontSize: '0.68rem',
+                                fontFamily: 'var(--font-mono)',
+                                color: '#38bdf8',
+                                background: 'rgba(56, 189, 248, 0.12)',
+                                border: '1px solid rgba(56, 189, 248, 0.25)',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                marginTop: '2px',
+                                width: 'fit-content'
+                              }}
+                              title={`Auto-prepared official invoice #${linkedInvoice.invoiceNumber}. Click to view or print.`}
+                            >
+                              <FileText size={10} />
+                              <span>{linkedInvoice.invoiceNumber}</span>
+                            </div>
+                          )}
                           <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.92rem' }}>
                             {order.itemName} {order.quantity > 1 ? `(×${order.quantity})` : ''}
                           </div>
@@ -454,31 +513,55 @@ export const OrdersList = () => {
                           <span className="no-print">Job Card</span>
                         </button>
 
-                        <button
-                          className="btn-secondary btn-sm"
-                          title="Create Invoice from this Order"
-                          onClick={() =>
-                            setModalConfig({
-                              type: 'new_invoice',
-                              data: {
-                                clientId: order.clientId,
-                                clientName: order.clientName,
-                                clientPhone: order.clientPhone,
-                                items: [
-                                  {
-                                    description: `${order.itemName} (${order.woodType}, ${order.dimensions || ''})`,
-                                    quantity: order.quantity || 1,
-                                    unitPrice: order.unitPrice || order.totalPrice,
-                                    imageUrl: order.imageUrl || ''
-                                  }
-                                ],
-                                depositPaid: order.depositPaid || 0
-                              }
-                            })
-                          }
-                        >
-                          <FileText size={13} />
-                        </button>
+                        {linkedInvoice ? (
+                          <button
+                            className="btn-outline-gold btn-sm"
+                            title={`View & Print Auto-Prepared Invoice #${linkedInvoice.invoiceNumber}`}
+                            onClick={() => setModalConfig({ type: 'print_invoice', data: linkedInvoice })}
+                          >
+                            <FileText size={13} />
+                            <span className="no-print">Invoice</span>
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-secondary btn-sm"
+                            title="Generate Invoice for Order"
+                            onClick={() =>
+                              setModalConfig({
+                                type: 'new_invoice',
+                                data: {
+                                  orderId: order.id,
+                                  orderNumber: order.orderNumber,
+                                  clientId: order.clientId,
+                                  clientName: order.clientName,
+                                  clientPhone: order.clientPhone,
+                                  items: [
+                                    {
+                                      description: `${order.itemName || order.category || 'Custom Furniture'}${
+                                        order.color ? ` - ${order.color}` : ''
+                                      }${order.dimensions ? ` (${order.dimensions})` : ''}`,
+                                      quantity: order.quantity || 1,
+                                      unitPrice: order.unitPrice || order.totalPrice,
+                                      imageUrl: order.imageUrl || ''
+                                    }
+                                  ],
+                                  subtotal: order.totalPrice,
+                                  totalAmount: order.totalPrice,
+                                  amountPaid: order.depositPaid || 0,
+                                  status:
+                                    (order.depositPaid || 0) >= (order.totalPrice || 0)
+                                      ? 'paid'
+                                      : (order.depositPaid || 0) > 0
+                                      ? 'partial'
+                                      : 'unpaid'
+                                }
+                              })
+                            }
+                          >
+                            <FileText size={13} />
+                            <span className="no-print">Invoice</span>
+                          </button>
+                        )}
 
                         <button
                           className="btn-secondary btn-sm"

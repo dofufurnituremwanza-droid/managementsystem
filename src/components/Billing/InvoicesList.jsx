@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const InvoicesList = () => {
-  const { invoices, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
+  const { invoices, orders, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,6 +68,22 @@ export const InvoicesList = () => {
       status: 'paid'
     });
 
+    // Synchronize linked order if present
+    if (invoice.orderId || invoice.orderNumber) {
+      const linkedOrder = orders?.find(
+        (o) =>
+          (invoice.orderId && o.id === invoice.orderId) ||
+          (invoice.orderNumber && o.orderNumber === invoice.orderNumber)
+      );
+      if (linkedOrder) {
+        await editItem('orders', linkedOrder.id, {
+          depositPaid: total,
+          isPaidInFull: true,
+          status: 'delivered'
+        });
+      }
+    }
+
     try {
       confetti({
         particleCount: 85,
@@ -97,6 +113,22 @@ export const InvoicesList = () => {
       amountPaid: newPaid,
       status: isNowPaid ? 'paid' : 'partial'
     });
+
+    // Synchronize linked order if present
+    if (invoice.orderId || invoice.orderNumber) {
+      const linkedOrder = orders?.find(
+        (o) =>
+          (invoice.orderId && o.id === invoice.orderId) ||
+          (invoice.orderNumber && o.orderNumber === invoice.orderNumber)
+      );
+      if (linkedOrder) {
+        await editItem('orders', linkedOrder.id, {
+          depositPaid: newPaid,
+          isPaidInFull: isNowPaid,
+          status: isNowPaid ? 'delivered' : linkedOrder.status
+        });
+      }
+    }
 
     if (isNowPaid) {
       try {
@@ -237,20 +269,36 @@ export const InvoicesList = () => {
                       >
                         {inv.invoiceNumber}
                       </div>
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: '0.68rem',
-                          background: inv.type === 'quotation' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(197, 160, 89, 0.15)',
-                          color: inv.type === 'quotation' ? '#60a5fa' : '#e5c07b'
-                        }}
-                      >
-                        {inv.type === 'quotation' ? 'Proforma Quote' : 'Invoice'}
-                      </span>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '3px' }}>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.68rem',
+                            background: inv.type === 'quotation' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(197, 160, 89, 0.15)',
+                            color: inv.type === 'quotation' ? '#60a5fa' : '#e5c07b'
+                          }}
+                        >
+                          {inv.type === 'quotation' ? 'Proforma Quote' : 'Invoice'}
+                        </span>
+                        {inv.orderNumber && (
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: '0.68rem',
+                              background: 'rgba(56, 189, 248, 0.15)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.3)'
+                            }}
+                            title={`Generated automatically for Order #${inv.orderNumber}`}
+                          >
+                            Order #{inv.orderNumber}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>{inv.clientName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{inv.clientName}</div>
                       {inv.clientPhone && (
                         <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                           {inv.clientPhone}
@@ -270,7 +318,7 @@ export const InvoicesList = () => {
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.94rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.94rem' }}>
                         {formatMoney(inv.totalAmount)}
                       </div>
                     </td>
