@@ -383,14 +383,16 @@ export const OrderReceiptModal = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px 14px' }}>
                 <div>
-                  <span style={{ color: '#64748b' }}>🪵 Timber Species:</span>{' '}
-                  <strong style={{ color: '#854d0e' }}>{order.woodType || 'Hardwood Timber'}</strong>
-                </div>
-
-                <div>
                   <span style={{ color: '#64748b' }}>🏷️ Category:</span>{' '}
                   <strong>{order.category || 'Custom Furniture'}</strong>
                 </div>
+
+                {(order.color || order.fabric) && (
+                  <div>
+                    <span style={{ color: '#64748b' }}>🎨 Color:</span>{' '}
+                    <strong>{order.color || order.fabric}</strong>
+                  </div>
+                )}
 
                 {order.dimensions && (
                   <div>
@@ -399,16 +401,16 @@ export const OrderReceiptModal = () => {
                   </div>
                 )}
 
-                {order.fabric && (
+                {order.woodType && (
                   <div>
-                    <span style={{ color: '#64748b' }}>🧵 Fabric / Leather:</span>{' '}
-                    <strong>{order.fabric}</strong>
+                    <span style={{ color: '#64748b' }}>🪵 Timber Species:</span>{' '}
+                    <strong style={{ color: '#854d0e' }}>{order.woodType}</strong>
                   </div>
                 )}
 
                 {order.finishType && (
                   <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748b' }}>🎨 Stain & Finish:</span>{' '}
+                    <span style={{ color: '#64748b' }}>✨ Finish:</span>{' '}
                     <strong>{order.finishType}</strong>
                   </div>
                 )}

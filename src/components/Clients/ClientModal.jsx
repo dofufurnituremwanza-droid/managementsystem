@@ -140,10 +140,10 @@ export const ClientModal = () => {
         </div>
 
         <div className="form-group form-full">
-          <label>Notes, Preferences & Wood/Style Tastes</label>
+          <label>Notes & Client Preferences</label>
           <textarea
             className="form-textarea"
-            placeholder="e.g. Prefers dark walnut stain, likes minimalist Scandinavian lines, allergic to synthetic fabrics..."
+            placeholder="e.g. Preferred colors, delivery landmarks, specific design requests..."
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           />

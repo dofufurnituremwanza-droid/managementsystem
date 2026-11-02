@@ -228,15 +228,23 @@ export const JobCardPrint = () => {
                   Furniture Piece Name
                 </td>
                 <td style={{ padding: '8px', fontWeight: 700, fontSize: '1rem' }}>
-                  {order.itemName} (Qty: {order.quantity || 1})
+                  {order.itemName || order.category || 'Bespoke Order'} (Qty: {order.quantity || 1})
                 </td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
-                  Timber / Wood Species
+                  Category
                 </td>
-                <td style={{ padding: '8px', color: '#854d0e', fontWeight: 600 }}>
-                  {order.woodType || 'Hardwood / Timber'}
+                <td style={{ padding: '8px', fontWeight: 600 }}>
+                  {order.category || 'Custom Joinery'}
+                </td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
+                  Color
+                </td>
+                <td style={{ padding: '8px', fontWeight: 600, color: '#1e3a8a' }}>
+                  {order.color || order.fabric || 'Standard / As Agreed'}
                 </td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -247,22 +255,26 @@ export const JobCardPrint = () => {
                   {order.dimensions || 'See workshop sketches'}
                 </td>
               </tr>
-              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
-                  Fabric / Leather & Color Code
-                </td>
-                <td style={{ padding: '8px' }}>
-                  {order.fabric || 'Natural wood finish (No upholstery)'}
-                </td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
-                  Wood Stain / Finish / Hardware
-                </td>
-                <td style={{ padding: '8px' }}>
-                  {order.finishType || 'Clear Matte Polyurethane / Brass Hinges'}
-                </td>
-              </tr>
+              {order.woodType && (
+                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
+                    Timber / Wood Species
+                  </td>
+                  <td style={{ padding: '8px', color: '#854d0e', fontWeight: 600 }}>
+                    {order.woodType}
+                  </td>
+                </tr>
+              )}
+              {order.finishType && (
+                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>
+                    Finish / Hardware
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    {order.finishType}
+                  </td>
+                </tr>
+              )}
               {order.notes && (
                 <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                   <td style={{ padding: '8px', fontWeight: 600, background: '#f3f4f6' }}>

@@ -134,7 +134,7 @@ export const OrdersList = () => {
               <tr>
                 <th>Order # & Item Details</th>
                 <th>Client</th>
-                <th>Timber & Specs</th>
+                <th>Category & Color</th>
                 <th>Production Stage</th>
                 <th>Pricing & Deposit</th>
                 <th>Delivery Due</th>
@@ -203,14 +203,14 @@ export const OrdersList = () => {
                     </td>
 
                     <td>
-                      <div style={{ color: '#d4a373', fontSize: '0.84rem', fontWeight: 500 }}>
-                        🪵 {order.woodType || 'Hardwood'}
+                      <div style={{ color: 'var(--gold-light)', fontSize: '0.84rem', fontWeight: 600 }}>
+                        🏷️ {order.category || 'Custom Furniture'}
                       </div>
-                      {order.fabric && (
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                          🧵 {order.fabric}
+                      {(order.color || order.fabric) ? (
+                        <div style={{ fontSize: '0.74rem', color: '#93c5fd', marginTop: '2px' }}>
+                          🎨 {order.color || order.fabric}
                         </div>
-                      )}
+                      ) : null}
                     </td>
 
                     <td>

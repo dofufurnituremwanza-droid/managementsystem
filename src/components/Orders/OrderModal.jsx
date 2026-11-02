@@ -16,13 +16,12 @@ export const OrderModal = () => {
     clientId: '',
     clientName: '',
     clientPhone: '',
-    itemName: '',
+    itemName: 'Dining Table & Chairs',
     imageUrl: '',
     category: 'Dining',
-    woodType: 'Mahogany',
     dimensions: '',
+    color: '',
     fabric: '',
-    finishType: 'Matte Polyurethane',
     quantity: 1,
     unitPrice: 0,
     totalPrice: 0,
@@ -35,18 +34,18 @@ export const OrderModal = () => {
 
   useEffect(() => {
     if (modalConfig.data) {
+      const activeCategory = existing.category || 'Dining';
       setFormData({
         orderNumber: existing.orderNumber || generateOrderNum(),
         clientId: existing.clientId || '',
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
-        itemName: existing.itemName || '',
+        itemName: existing.itemName || activeCategory,
         imageUrl: existing.imageUrl || '',
-        category: existing.category || 'Dining',
-        woodType: existing.woodType || 'Mahogany',
+        category: activeCategory,
         dimensions: existing.dimensions || '',
-        fabric: existing.fabric || '',
-        finishType: existing.finishType || 'Matte Polyurethane',
+        color: existing.color || existing.fabric || '',
+        fabric: existing.color || existing.fabric || '',
         quantity: existing.quantity || 1,
         unitPrice: existing.unitPrice || 0,
         totalPrice: existing.totalPrice || 0,
@@ -62,13 +61,12 @@ export const OrderModal = () => {
         clientId: '',
         clientName: '',
         clientPhone: '',
-        itemName: '',
+        itemName: 'Dining Table & Chairs',
         imageUrl: '',
         category: 'Dining',
-        woodType: 'Mahogany',
         dimensions: '',
+        color: '',
         fabric: '',
-        finishType: 'Matte Polyurethane',
         quantity: 1,
         unitPrice: 0,
         totalPrice: 0,
@@ -118,13 +116,21 @@ export const OrderModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.itemName.trim() || !formData.clientName.trim()) return;
+    if (!formData.clientName.trim()) return;
+
+    const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
+    const payload = {
+      ...formData,
+      itemName: finalItemName,
+      color: formData.color || formData.fabric || '',
+      fabric: formData.color || formData.fabric || ''
+    };
 
     let savedRecord = null;
     if (isEditing) {
-      savedRecord = await editItem('orders', existing.id, formData);
+      savedRecord = await editItem('orders', existing.id, payload);
     } else {
-      savedRecord = await addItem('orders', formData);
+      savedRecord = await addItem('orders', payload);
       try {
         confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
       } catch (err) {}
@@ -133,7 +139,7 @@ export const OrderModal = () => {
     // Automatically open Order & Deposit Payment Receipt for download and print
     setModalConfig({
       type: 'order_receipt',
-      data: { ...formData, id: savedRecord?.id || existing.id }
+      data: { ...payload, id: savedRecord?.id || existing.id }
     });
   };
 
@@ -195,18 +201,6 @@ export const OrderModal = () => {
           />
         </div>
 
-        <div className="form-group form-full">
-          <label>Furniture Piece Name *</label>
-          <input
-            type="text"
-            required
-            className="form-input"
-            placeholder="e.g. 8-Seater Solid Mvule Live-Edge Dining Table"
-            value={formData.itemName}
-            onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-          />
-        </div>
-
         <ImageUploader
           value={formData.imageUrl}
           onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
@@ -218,7 +212,14 @@ export const OrderModal = () => {
           <select
             className="form-select"
             value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            onChange={(e) => {
+              const newCat = e.target.value;
+              setFormData((prev) => ({
+                ...prev,
+                category: newCat,
+                itemName: newCat
+              }));
+            }}
           >
             <option value="Dining">Dining Table & Chairs</option>
             <option value="Living Room / Sofas">Living Room & Sofas</option>
@@ -231,21 +232,14 @@ export const OrderModal = () => {
         </div>
 
         <div className="form-group">
-          <label>Wood / Timber Species</label>
-          <select
-            className="form-select"
-            value={formData.woodType}
-            onChange={(e) => setFormData({ ...formData, woodType: e.target.value })}
-          >
-            <option value="Mahogany">Solid Mahogany (Kikwete/African)</option>
-            <option value="Mvule (Iroko)">Mvule / African Teak (Iroko)</option>
-            <option value="Teak">Plantation Teak</option>
-            <option value="White Oak">Imported White Oak</option>
-            <option value="Walnut">American Black Walnut</option>
-            <option value="Pau Rosa / Rosewood">African Rosewood</option>
-            <option value="MDF Veneer">High-Density MDF with Natural Veneer</option>
-            <option value="Metal & Wood">Brass/Steel Framework + Wood</option>
-          </select>
+          <label>Color</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="e.g. Royal Blue, Dark Brown, Warm Grey, Off-white, Natural Gold..."
+            value={formData.color || formData.fabric || ''}
+            onChange={(e) => setFormData({ ...formData, color: e.target.value, fabric: e.target.value })}
+          />
         </div>
 
         <div className="form-group">
@@ -257,33 +251,6 @@ export const OrderModal = () => {
             value={formData.dimensions}
             onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
           />
-        </div>
-
-        <div className="form-group">
-          <label>Fabric / Leather & Color Code</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="e.g. Deep Forest Green Velvet / Tan Top-Grain Leather"
-            value={formData.fabric}
-            onChange={(e) => setFormData({ ...formData, fabric: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Stain & Finishing Type</label>
-          <select
-            className="form-select"
-            value={formData.finishType}
-            onChange={(e) => setFormData({ ...formData, finishType: e.target.value })}
-          >
-            <option value="Natural Matte Polyurethane">Natural Matte Polyurethane</option>
-            <option value="Satin Clear Varnish">Satin Clear Varnish</option>
-            <option value="Dark Walnut Stain">Dark Walnut Stain</option>
-            <option value="Espresso Dark Finish">Espresso Dark Finish</option>
-            <option value="Bleached / Natural Blonde">Bleached / Natural Blonde</option>
-            <option value="Organic Oil & Beeswax">Organic Hardwax Oil & Beeswax</option>
-          </select>
         </div>
 
         <div className="form-group">
