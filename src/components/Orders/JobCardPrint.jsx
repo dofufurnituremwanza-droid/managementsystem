@@ -106,9 +106,13 @@ export const JobCardPrint = () => {
               JOB #{order.orderNumber || 'ORD-001'}
             </div>
             <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: '6px 0 0' }}>
-              Due Date:{' '}
+              Order Date:{' '}
+              <strong>{order.orderDate || new Date().toISOString().split('T')[0]}</strong>
+            </p>
+            <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: '2px 0 0' }}>
+              Target Delivery Date:{' '}
               <strong style={{ color: '#dc2626' }}>
-                {order.dueDate || 'Standard Production'}
+                {order.targetDeliveryDate || order.dueDate || 'Standard Production'}
               </strong>
             </p>
           </div>

@@ -136,8 +136,8 @@ export const OrdersList = () => {
                 <th>Client</th>
                 <th>Category & Color</th>
                 <th>Production Stage</th>
-                <th>Pricing & Deposit</th>
-                <th>Delivery Due</th>
+                <th>Pricing & Advance</th>
+                <th>Target Delivery</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -254,7 +254,7 @@ export const OrdersList = () => {
                         ) : (
                           <>
                             <div style={{ fontSize: '0.74rem', color: '#f59e0b', fontWeight: 600 }}>
-                              Deposit: {formatMoney(order.depositPaid || 0)}
+                              Advance: {formatMoney(order.depositPaid || 0)}
                             </div>
                             <div style={{ fontSize: '0.74rem', color: '#ef4444', fontWeight: 700 }}>
                               Balance: {formatMoney(balance)}
@@ -282,12 +282,17 @@ export const OrdersList = () => {
                           alignItems: 'center',
                           gap: '5px',
                           fontSize: '0.82rem',
-                          color: order.dueDate ? '#fff' : 'var(--text-muted)'
+                          color: (order.targetDeliveryDate || order.dueDate) ? '#fff' : 'var(--text-muted)'
                         }}
                       >
                         <Clock size={13} color="var(--gold-primary)" />
-                        <span>{order.dueDate || 'Open'}</span>
+                        <span>{order.targetDeliveryDate || order.dueDate || 'Open'}</span>
                       </div>
+                      {order.orderDate && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          📅 {order.orderDate}
+                        </div>
+                      )}
                     </td>
 
                     <td style={{ textAlign: 'right' }}>

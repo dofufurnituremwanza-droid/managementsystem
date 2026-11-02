@@ -20,14 +20,11 @@ export const ClientsList = () => {
   const [typeFilter, setTypeFilter] = useState('all');
 
   const filtered = clients.filter((c) => {
-    const matchSearch =
+    return (
       (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.address || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchType = typeFilter === 'all' || c.clientType === typeFilter;
-    return matchSearch && matchType;
+      (c.address || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   const handleDelete = (id, name) => {
@@ -45,24 +42,11 @@ export const ClientsList = () => {
             <Search size={16} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by client name, phone, location..."
+              placeholder="Search by customer name, phone, delivery address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
-          <select
-            className="form-select"
-            style={{ width: 'auto' }}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">All Classifications</option>
-            <option value="Residential">Residential</option>
-            <option value="Commercial">Commercial / Office</option>
-            <option value="Hotel/Hospitality">Hotel / Hospitality</option>
-            <option value="Architect">Architect / Contractor</option>
-          </select>
         </div>
 
         <button
@@ -70,7 +54,7 @@ export const ClientsList = () => {
           onClick={() => setModalConfig({ type: 'new_client' })}
         >
           <Plus size={16} />
-          <span>Register New Client</span>
+          <span>Add Customer</span>
         </button>
       </div>
 
@@ -78,24 +62,23 @@ export const ClientsList = () => {
       {clients.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No Clients in Database"
-          description="Ditch paper notepads! Keep all client contacts, delivery locations, custom taste notes, and job records safely organized in your system."
-          actionLabel="Register First Client"
+          title="No Customers in Database"
+          description="Keep all customer full names, phone numbers, and delivery addresses safely organized in your system."
+          actionLabel="Add First Customer"
           onAction={() => setModalConfig({ type: 'new_client' })}
         />
       ) : filtered.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: 'var(--text-secondary)' }}>No clients matched your search query.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>No customers matched your search query.</p>
         </div>
       ) : (
         <div className="table-container">
           <table className="luxury-table">
             <thead>
               <tr>
-                <th>Client Details</th>
-                <th>Contact</th>
-                <th>Classification</th>
-                <th>Location / Site</th>
+                <th>Customer Full Name</th>
+                <th>Phone Number</th>
+                <th>Delivery Address</th>
                 <th>Orders / Invoices</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -111,49 +94,12 @@ export const ClientsList = () => {
                       <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>
                         {client.name}
                       </div>
-                      {client.companyName && (
-                        <div style={{ fontSize: '0.78rem', color: 'var(--gold-light)' }}>
-                          {client.companyName}
-                        </div>
-                      )}
-                      {client.notes && (
-                        <div
-                          style={{
-                            fontSize: '0.74rem',
-                            color: 'var(--text-muted)',
-                            maxWidth: '260px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          {client.notes}
-                        </div>
-                      )}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', color: '#60a5fa' }}>
                         <Phone size={13} color="var(--gold-primary)" />
                         <span>{client.phone}</span>
                       </div>
-                      {client.email && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.78rem',
-                            color: 'var(--text-secondary)',
-                            marginTop: '2px'
-                          }}
-                        >
-                          <Mail size={13} />
-                          <span>{client.email}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <span className="badge badge-draft">{client.clientType || 'Residential'}</span>
                     </td>
                     <td>
                       <div
@@ -161,15 +107,12 @@ export const ClientsList = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          fontSize: '0.82rem',
-                          color: 'var(--text-secondary)',
-                          maxWidth: '200px'
+                          fontSize: '0.84rem',
+                          color: 'var(--text-secondary)'
                         }}
                       >
                         <MapPin size={13} color="var(--wood-warm)" />
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {client.address || 'Not specified'}
-                        </span>
+                        <span>{client.address || 'No address specified'}</span>
                       </div>
                     </td>
                     <td>

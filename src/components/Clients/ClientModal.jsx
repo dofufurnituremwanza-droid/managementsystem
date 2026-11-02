@@ -10,11 +10,7 @@ export const ClientModal = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
-    address: '',
-    clientType: 'Residential', // Residential, Commercial, Real Estate, Architect
-    companyName: '',
-    notes: ''
+    address: ''
   });
 
   useEffect(() => {
@@ -22,21 +18,13 @@ export const ClientModal = () => {
       setFormData({
         name: existing.name || '',
         phone: existing.phone || '',
-        email: existing.email || '',
-        address: existing.address || '',
-        clientType: existing.clientType || 'Residential',
-        companyName: existing.companyName || '',
-        notes: existing.notes || ''
+        address: existing.address || ''
       });
     } else {
       setFormData({
         name: '',
         phone: '',
-        email: '',
-        address: '',
-        clientType: 'Residential',
-        companyName: '',
-        notes: ''
+        address: ''
       });
     }
   }, [modalConfig]);
@@ -65,87 +53,43 @@ export const ClientModal = () => {
     <Modal
       isOpen={true}
       onClose={() => setModalConfig({ type: null })}
-      title={isEditing ? 'Edit Client Record' : 'Register New Client'}
+      title={isEditing ? 'Edit Customer Record' : 'Add New Customer'}
     >
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="form-group form-full">
-          <label>Client Full Name *</label>
+          <label>Full Names *</label>
           <input
             type="text"
             required
+            autoFocus
             className="form-input"
-            placeholder="e.g. Salim Rashid or Sarah Jenkins"
+            placeholder="e.g. Salim Rashid Mwita"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
         </div>
 
-        <div className="form-group">
+        <div className="form-group form-full">
           <label>Phone Number *</label>
           <input
             type="tel"
             required
             className="form-input"
-            placeholder="e.g. +255 712 345 678"
+            placeholder="e.g. +255 769 456 793"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           />
         </div>
 
-        <div className="form-group">
-          <label>Email Address</label>
-          <input
-            type="email"
-            className="form-input"
-            placeholder="e.g. client@example.com"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Client Classification</label>
-          <select
-            className="form-select"
-            value={formData.clientType}
-            onChange={(e) => setFormData({ ...formData, clientType: e.target.value })}
-          >
-            <option value="Residential">Residential Home Owner</option>
-            <option value="Commercial">Commercial / Office</option>
-            <option value="Hotel/Hospitality">Hotel / Resort / Airbnb</option>
-            <option value="Architect">Architect / Contractor Partner</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Organization / Estate / Villa Name</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="e.g. Masaki Waterfront Villa or Apex Offices"
-            value={formData.companyName}
-            onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-          />
-        </div>
-
         <div className="form-group form-full">
-          <label>Site / Delivery Address</label>
+          <label>Delivery Address *</label>
           <input
             type="text"
+            required
             className="form-input"
-            placeholder="e.g. Plot 14, Haile Selassie Rd, Masaki, Dar es Salaam"
+            placeholder="e.g. Bugarika Sokoni, Bugando, Mwanza"
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group form-full">
-          <label>Notes & Client Preferences</label>
-          <textarea
-            className="form-textarea"
-            placeholder="e.g. Preferred colors, delivery landmarks, specific design requests..."
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           />
         </div>
 
@@ -161,7 +105,7 @@ export const ClientModal = () => {
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Save Changes' : 'Register Client'}
+            {isEditing ? 'Save Changes' : 'Add Customer'}
           </button>
         </div>
       </form>

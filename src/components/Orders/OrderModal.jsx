@@ -10,50 +10,52 @@ export const OrderModal = () => {
   const existing = modalConfig.data || {};
 
   const generateOrderNum = () => `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     orderNumber: generateOrderNum(),
     clientId: '',
     clientName: '',
     clientPhone: '',
-    itemName: 'Dining Table & Chairs',
     imageUrl: '',
-    category: 'Dining',
-    dimensions: '',
+    category: 'Dining Table & Chairs',
+    itemName: 'Dining Table & Chairs',
     color: '',
-    fabric: '',
+    dimensions: '',
     quantity: 1,
     unitPrice: 0,
     totalPrice: 0,
     depositPaid: 0,
-    status: 'draft', // draft, carpentry, upholstery, quality_check, ready, delivered, cancelled
-    assignedTo: '',
+    orderDate: todayStr,
     dueDate: '',
-    notes: ''
+    targetDeliveryDate: '',
+    status: 'draft'
   });
 
   useEffect(() => {
     if (modalConfig.data) {
-      const activeCategory = existing.category || 'Dining';
+      const activeCat = existing.category || existing.itemName || 'Dining Table & Chairs';
+      const orderDt = existing.orderDate || existing.createdAt?.split('T')[0] || todayStr;
+      const deliveryDt = existing.targetDeliveryDate || existing.dueDate || '';
+
       setFormData({
         orderNumber: existing.orderNumber || generateOrderNum(),
         clientId: existing.clientId || '',
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
-        itemName: existing.itemName || activeCategory,
         imageUrl: existing.imageUrl || '',
-        category: activeCategory,
-        dimensions: existing.dimensions || '',
+        category: activeCat,
+        itemName: existing.itemName || activeCat,
         color: existing.color || existing.fabric || '',
-        fabric: existing.color || existing.fabric || '',
-        quantity: existing.quantity || 1,
+        dimensions: existing.dimensions || '',
+        quantity: existing.quantity !== undefined ? existing.quantity : 1,
         unitPrice: existing.unitPrice || 0,
         totalPrice: existing.totalPrice || 0,
-        depositPaid: existing.depositPaid || 0,
-        status: existing.status || 'draft',
-        assignedTo: existing.assignedTo || '',
-        dueDate: existing.dueDate || '',
-        notes: existing.notes || ''
+        depositPaid: existing.depositPaid !== undefined ? existing.depositPaid : 0,
+        orderDate: orderDt,
+        dueDate: deliveryDt,
+        targetDeliveryDate: deliveryDt,
+        status: existing.status || 'draft'
       });
     } else {
       setFormData({
@@ -61,20 +63,19 @@ export const OrderModal = () => {
         clientId: '',
         clientName: '',
         clientPhone: '',
-        itemName: 'Dining Table & Chairs',
         imageUrl: '',
-        category: 'Dining',
-        dimensions: '',
+        category: 'Dining Table & Chairs',
+        itemName: 'Dining Table & Chairs',
         color: '',
-        fabric: '',
+        dimensions: '',
         quantity: 1,
         unitPrice: 0,
         totalPrice: 0,
         depositPaid: 0,
-        status: 'draft',
-        assignedTo: '',
+        orderDate: todayStr,
         dueDate: '',
-        notes: ''
+        targetDeliveryDate: '',
+        status: 'draft'
       });
     }
   }, [modalConfig]);
@@ -119,11 +120,16 @@ export const OrderModal = () => {
     if (!formData.clientName.trim()) return;
 
     const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
+    const deliveryDate = formData.targetDeliveryDate || formData.dueDate || '';
+
     const payload = {
       ...formData,
       itemName: finalItemName,
-      color: formData.color || formData.fabric || '',
-      fabric: formData.color || formData.fabric || ''
+      color: formData.color || '',
+      fabric: formData.color || '',
+      orderDate: formData.orderDate || todayStr,
+      targetDeliveryDate: deliveryDate,
+      dueDate: deliveryDate
     };
 
     let savedRecord = null;
@@ -151,8 +157,9 @@ export const OrderModal = () => {
       size="lg"
     >
       <form onSubmit={handleSubmit} className="form-grid">
+        {/* 1. Order Number */}
         <div className="form-group">
-          <label>Order Reference #</label>
+          <label>Order Number</label>
           <input
             type="text"
             required
@@ -162,6 +169,7 @@ export const OrderModal = () => {
           />
         </div>
 
+        {/* 2. Link Existing Client */}
         <div className="form-group">
           <label>Link Existing Client</label>
           <select
@@ -169,7 +177,7 @@ export const OrderModal = () => {
             value={formData.clientId}
             onChange={(e) => handleClientSelect(e.target.value)}
           >
-            <option value="">-- Choose registered client or type below --</option>
+            <option value="">-- Choose registered customer (or enter below) --</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} ({c.phone})
@@ -178,35 +186,40 @@ export const OrderModal = () => {
           </select>
         </div>
 
+        {/* 3. Name of the Client */}
         <div className="form-group">
-          <label>Client Name *</label>
+          <label>Name of the Client *</label>
           <input
             type="text"
             required
             className="form-input"
-            placeholder="e.g. Brenda Mwangi"
+            placeholder="e.g. Salim Rashid"
             value={formData.clientName}
             onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
           />
         </div>
 
+        {/* 4. Phone Number */}
         <div className="form-group">
-          <label>Client Phone Number</label>
+          <label>Phone Number *</label>
           <input
             type="tel"
+            required
             className="form-input"
-            placeholder="e.g. +255 754 112 233"
+            placeholder="e.g. +255 769 456 793"
             value={formData.clientPhone}
             onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
           />
         </div>
 
+        {/* 5. Photo Design / Design Reference */}
         <ImageUploader
           value={formData.imageUrl}
           onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
-          label="Product Photo / Design Reference Image"
+          label="Photo Design / Design Reference"
         />
 
+        {/* 6. Category */}
         <div className="form-group">
           <label>Category</label>
           <select
@@ -221,29 +234,31 @@ export const OrderModal = () => {
               }));
             }}
           >
-            <option value="Dining">Dining Table & Chairs</option>
-            <option value="Living Room / Sofas">Living Room & Sofas</option>
-            <option value="Bedroom / Beds">Bedroom & Bedframes</option>
+            <option value="Dining Table & Chairs">Dining Table & Chairs</option>
+            <option value="Living Room & Sofas">Living Room & Sofas</option>
+            <option value="Bedroom & Bedframes">Bedroom & Bedframes</option>
             <option value="Office / Desks">Executive Desks & Shelving</option>
             <option value="Consoles & TV Units">TV Consoles & Credenzas</option>
-            <option value="Outdoor Furniture">Outdoor & Patio Teak</option>
+            <option value="Outdoor Furniture">Outdoor & Patio Furniture</option>
             <option value="Custom Joinery">Bespoke Architectural Joinery</option>
           </select>
         </div>
 
+        {/* 7. Color */}
         <div className="form-group">
           <label>Color</label>
           <input
             type="text"
             className="form-input"
-            placeholder="e.g. Royal Blue, Dark Brown, Warm Grey, Off-white, Natural Gold..."
-            value={formData.color || formData.fabric || ''}
-            onChange={(e) => setFormData({ ...formData, color: e.target.value, fabric: e.target.value })}
+            placeholder="e.g. Royal Blue, Warm Grey, Dark Brown, White..."
+            value={formData.color}
+            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
           />
         </div>
 
+        {/* 8. Dimensions */}
         <div className="form-group">
-          <label>Dimensions (Length × Width × Height)</label>
+          <label>Dimensions</label>
           <input
             type="text"
             className="form-input"
@@ -253,23 +268,7 @@ export const OrderModal = () => {
           />
         </div>
 
-        <div className="form-group">
-          <label>Production Status</label>
-          <select
-            className="form-select"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          >
-            <option value="draft">1. Order Placed / Draft</option>
-            <option value="carpentry">2. Carpentry & Timber Cutting</option>
-            <option value="upholstery">3. Upholstery & Cushioning / Finishing</option>
-            <option value="quality_check">4. Quality Inspection (QC)</option>
-            <option value="ready">5. Ready for Delivery / Showroom</option>
-            <option value="delivered">6. Delivered & Installed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-
+        {/* 9. Quantity */}
         <div className="form-group">
           <label>Quantity</label>
           <input
@@ -281,12 +280,14 @@ export const OrderModal = () => {
           />
         </div>
 
+        {/* 10. Price */}
         <div className="form-group">
-          <label>Unit Price</label>
+          <label>Price (Unit Price)</label>
           <input
             type="number"
             min="0"
             className="form-input"
+            placeholder="e.g. 1500000"
             value={formData.unitPrice}
             onChange={(e) => handlePriceChange(formData.quantity, e.target.value)}
           />
@@ -303,51 +304,51 @@ export const OrderModal = () => {
           />
         </div>
 
+        {/* 11. Advance to be Paid */}
         <div className="form-group">
-          <label>Deposit Paid So Far</label>
+          <label>Advance to be Paid</label>
           <input
             type="number"
             min="0"
             className="form-input"
+            placeholder="e.g. 800000"
             value={formData.depositPaid}
             onChange={(e) => setFormData({ ...formData, depositPaid: Number(e.target.value) || 0 })}
           />
         </div>
 
+        {/* 12. Order Date */}
         <div className="form-group">
-          <label>Assigned Lead Artisan / Carpenter</label>
+          <label>Order Date</label>
           <input
-            type="text"
+            type="date"
+            required
             className="form-input"
-            placeholder="e.g. Master Carpenter James"
-            value={formData.assignedTo}
-            onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+            value={formData.orderDate}
+            onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
           />
         </div>
 
+        {/* 13. Target Delivery Date */}
         <div className="form-group">
           <label>Target Delivery Date</label>
           <input
             type="date"
             className="form-input"
-            value={formData.dueDate}
-            onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group form-full">
-          <label>Workshop Carving Notes & Special Instructions</label>
-          <textarea
-            className="form-textarea"
-            placeholder="e.g. Tapered legs, brass foot ferrules, chamfered edge profile..."
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            value={formData.targetDeliveryDate}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                targetDeliveryDate: e.target.value,
+                dueDate: e.target.value
+              })
+            }
           />
         </div>
 
         <div
           className="form-full"
-          style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}
+          style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}
         >
           <button
             type="button"
@@ -357,7 +358,7 @@ export const OrderModal = () => {
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Update Order' : 'Create Order'}
+            {isEditing ? 'Update Order' : 'Create Order & Print Receipt'}
           </button>
         </div>
       </form>

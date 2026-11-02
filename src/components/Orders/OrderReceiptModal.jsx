@@ -293,7 +293,7 @@ export const OrderReceiptModal = () => {
               <strong>Phone:</strong> {order.clientPhone || 'Not provided'}
             </div>
             <div>
-              <strong>Order Date:</strong> {formattedDate}
+              <strong>Order Date:</strong> {order.orderDate || formattedDate}
             </div>
           </div>
 
@@ -302,9 +302,9 @@ export const OrderReceiptModal = () => {
               WORKSHOP & DELIVERY SPECIFICATIONS
             </div>
             <div style={{ marginTop: '2px' }}>
-              <strong>Target Handover / Delivery:</strong>{' '}
+              <strong>Target Delivery Date:</strong>{' '}
               <span style={{ fontWeight: 700, color: '#b45309' }}>
-                {order.dueDate || 'Standard Bespoke Handcrafting (14 Days)'}
+                {order.targetDeliveryDate || order.dueDate || 'Standard Bespoke Handcrafting'}
               </span>
             </div>
             <div>
@@ -463,7 +463,7 @@ export const OrderReceiptModal = () => {
               color: '#059669'
             }}
           >
-            <span>DEPOSIT / AMOUNT RECEIVED:</span>
+            <span>ADVANCE PAID / DEPOSIT:</span>
             <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(depositPaid)}</span>
           </div>
 
