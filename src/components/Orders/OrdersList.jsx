@@ -280,7 +280,7 @@ export const OrdersList = () => {
                           >
                             {order.orderNumber}
                           </div>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.92rem' }}>
                             {order.itemName} {order.quantity > 1 ? `(×${order.quantity})` : ''}
                           </div>
                           {order.dimensions && (
@@ -293,7 +293,7 @@ export const OrdersList = () => {
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>{order.clientName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{order.clientName}</div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                         {order.clientPhone || 'No phone'}
                       </div>
@@ -370,7 +370,7 @@ export const OrdersList = () => {
 
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.92rem' }}>
                           {formatMoney(order.totalPrice)}
                         </div>
 
@@ -547,7 +547,7 @@ export const OrdersList = () => {
                 background: 'rgba(15, 18, 24, 0.95)'
               }}
             >
-              <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.94rem' }}>
                 {previewImage.title || 'Product Reference'}
               </span>
               <button

@@ -325,7 +325,7 @@ export const DashboardView = () => {
                 >
                   <UserCheck size={18} />
                 </span>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)', margin: 0 }}>
                   Daily Staff Activity & Entries Log
                 </h3>
               </div>
@@ -387,7 +387,7 @@ export const DashboardView = () => {
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Orders Recorded on {selectedAuditDate === todayStr ? 'Today' : selectedAuditDate}
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
                 {ordersOnDate.length}
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>
@@ -464,7 +464,7 @@ export const DashboardView = () => {
                       <User size={13} />
                       <span>{s.name}</span>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#fff' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)' }}>
                       <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{s.orders.length}</span> order(s) •{' '}
                       <span style={{ color: '#60a5fa', fontWeight: 700 }}>{s.clients.length}</span> customer(s)
                     </div>
@@ -524,7 +524,7 @@ export const DashboardView = () => {
                       {entry.type === 'order' ? <Armchair size={15} /> : <Users size={15} />}
                     </span>
                     <div>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
                         {entry.title}
                       </div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
@@ -596,7 +596,7 @@ export const DashboardView = () => {
             <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               SALES & ORDERS ASSISTANT DESK
             </span>
-            <h3 style={{ fontFamily: 'var(--font-serif)', color: '#fff', fontSize: '1.25rem', margin: '4px 0 2px' }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', color: 'var(--text-main)', fontSize: '1.25rem', margin: '4px 0 2px' }}>
               Welcome back, {currentUser?.name || currentUser?.username}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
@@ -647,7 +647,7 @@ export const DashboardView = () => {
               style={{
                 fontFamily: 'var(--font-serif)',
                 fontSize: '1.6rem',
-                color: '#fff',
+                color: 'var(--text-main)',
                 margin: '8px 0 12px'
               }}
             >
@@ -781,7 +781,7 @@ export const DashboardView = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Pin size={18} color="var(--gold-primary)" style={{ transform: 'rotate(45deg)' }} />
               <div>
-                <h4 style={{ color: '#fff', fontSize: '1.05rem', margin: 0, fontFamily: 'var(--font-serif)' }}>
+                <h4 style={{ color: 'var(--text-main)', fontSize: '1.05rem', margin: 0, fontFamily: 'var(--font-serif)' }}>
                   DOFU's Reminders & Pinned Notes
                 </h4>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
@@ -830,7 +830,7 @@ export const DashboardView = () => {
                       </span>
                     )}
                   </div>
-                  <strong style={{ color: '#fff', fontSize: '0.88rem', display: 'block', marginBottom: '4px' }}>
+                  <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem', display: 'block', marginBottom: '4px' }}>
                     {note.title}
                   </strong>
                   {note.content && (
@@ -868,7 +868,7 @@ export const DashboardView = () => {
             }}
           >
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#fff' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
                 Workshop Production Pipeline
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -909,7 +909,7 @@ export const DashboardView = () => {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
                       {order.itemName}
                     </div>
                     <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
@@ -940,7 +940,7 @@ export const DashboardView = () => {
               }}
             >
               <div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#fff' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
                   Interior Design Projects
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -984,7 +984,7 @@ export const DashboardView = () => {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <strong style={{ color: '#fff', fontSize: '0.88rem' }}>{project.title}</strong>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem' }}>{project.title}</strong>
                         <span className="badge badge-draft">{project.stage}</span>
                       </div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -1025,7 +1025,7 @@ export const DashboardView = () => {
               }}
             >
               <div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#fff' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
                   Quotes, Invoices & Sales
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -1066,7 +1066,7 @@ export const DashboardView = () => {
                     }}
                   >
                     <div>
-                      <strong style={{ color: '#fff', fontSize: '0.88rem', display: 'block' }}>
+                      <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem', display: 'block' }}>
                         {inv.invoiceNumber}
                       </strong>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>

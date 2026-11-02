@@ -163,7 +163,7 @@ export const ClientsList = () => {
                 return (
                   <tr key={client.id}>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.94rem' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.94rem' }}>
                         {client.name}
                       </div>
                     </td>

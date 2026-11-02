@@ -154,7 +154,7 @@ export const SettingsView = () => {
               <Database size={22} color="var(--gold-primary)" />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#fff' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
                 DOFU Cloud Database Synchronization
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -185,7 +185,7 @@ export const SettingsView = () => {
             <Sun size={22} />
           </div>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)', margin: 0 }}>
               Display Theme & Appearance (Dark & Light Mode)
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
@@ -233,7 +233,7 @@ export const SettingsView = () => {
                   <Moon size={18} />
                 </span>
                 <div>
-                  <strong style={{ fontSize: '1rem', color: '#fff', display: 'block' }}>Dark Luxury Mode</strong>
+                  <strong style={{ fontSize: '1rem', color: 'var(--text-main)', display: 'block' }}>Dark Luxury Mode</strong>
                   <span style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>Recommended Default</span>
                 </div>
               </div>
@@ -287,15 +287,15 @@ export const SettingsView = () => {
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    background: '#f8fafc',
-                    color: '#b8860b',
-                    border: '1px solid rgba(184, 134, 11, 0.4)'
+                    background: 'rgba(197, 160, 89, 0.12)',
+                    color: 'var(--gold-primary)',
+                    border: '1px solid rgba(197, 160, 89, 0.4)'
                   }}
                 >
                   <Sun size={18} />
                 </span>
                 <div>
-                  <strong style={{ fontSize: '1rem', color: '#fff', display: 'block' }}>Light Luxury Mode</strong>
+                  <strong style={{ fontSize: '1rem', color: 'var(--text-main)', display: 'block' }}>Light Luxury Mode</strong>
                   <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>High Clarity Display</span>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export const SettingsView = () => {
             <Building2 size={22} />
           </div>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff' }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)' }}>
               Business Profile & Invoice Settings
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -484,7 +484,7 @@ export const SettingsView = () => {
               <Users size={22} />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)' }}>
                 Staff & Assistant Access Control
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -615,7 +615,7 @@ export const SettingsView = () => {
                         {member.name ? member.name[0].toUpperCase() : 'A'}
                       </div>
                       <div>
-                        <strong style={{ color: '#fff', fontSize: '0.92rem', display: 'block' }}>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem', display: 'block' }}>
                           {member.name}
                         </strong>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
@@ -665,7 +665,7 @@ export const SettingsView = () => {
             border: '1px solid var(--border-subtle)'
           }}
         >
-          <h5 style={{ color: '#fff', fontSize: '0.86rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <h5 style={{ color: 'var(--text-main)', fontSize: '0.86rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheck size={16} color="var(--gold-primary)" />
             <span>Assistant vs. Owner Privacy & Permissions Matrix</span>
           </h5>
@@ -704,7 +704,7 @@ export const SettingsView = () => {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           <div>
-            <h4 style={{ color: '#fff', fontSize: '1.05rem', marginBottom: '4px' }}>
+            <h4 style={{ color: 'var(--text-main)', fontSize: '1.05rem', marginBottom: '4px' }}>
               Full Offline JSON Data Backup
             </h4>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>

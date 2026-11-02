@@ -153,7 +153,7 @@ export const Sidebar = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
               <div className={`status-dot ${isAssistant ? 'warning' : 'online'}`} />
               <div className="status-info" style={{ minWidth: 0 }}>
-                <span className="status-title" style={{ color: '#fff', fontWeight: 600, display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <span className="status-title" style={{ color: 'var(--text-main)', fontWeight: 600, display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                   {currentUser?.name || currentUser?.username || 'DOFU'}
                 </span>
                 <span className="status-sub" style={{ color: isAssistant ? '#60a5fa' : 'var(--gold-primary)', fontSize: '0.72rem' }}>
