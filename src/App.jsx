@@ -27,7 +27,7 @@ import { ExpenseModal } from './components/Expenses/ExpenseModal';
 import { FirebaseConfigModal } from './components/Settings/FirebaseConfigModal';
 
 const MainLayout = () => {
-  const { activeTab } = useApp();
+  const { activeTab, isOwner } = useApp();
 
   return (
     <div className="app-container">
@@ -38,13 +38,13 @@ const MainLayout = () => {
 
         <div className="page-content">
           {activeTab === 'dashboard' && <DashboardView />}
-          {activeTab === 'notebook' && <NotebookView />}
+          {isOwner && activeTab === 'notebook' && <NotebookView />}
           {activeTab === 'orders' && <OrdersList />}
-          {activeTab === 'projects' && <ProjectsList />}
+          {isOwner && activeTab === 'projects' && <ProjectsList />}
           {activeTab === 'clients' && <ClientsList />}
           {activeTab === 'billing' && <InvoicesList />}
-          {activeTab === 'expenses' && <ExpensesList />}
-          {activeTab === 'settings' && <SettingsView />}
+          {isOwner && activeTab === 'expenses' && <ExpensesList />}
+          {isOwner && activeTab === 'settings' && <SettingsView />}
         </div>
       </main>
 
@@ -52,12 +52,12 @@ const MainLayout = () => {
       <OrderModal />
       <JobCardPrint />
       <OrderReceiptModal />
-      <ProjectModal />
+      {isOwner && <ProjectModal />}
       <ClientModal />
       <InvoiceModal />
       <InvoicePrintView />
-      <ExpenseModal />
-      <FirebaseConfigModal />
+      {isOwner && <ExpenseModal />}
+      {isOwner && <FirebaseConfigModal />}
 
       <Toast />
     </div>

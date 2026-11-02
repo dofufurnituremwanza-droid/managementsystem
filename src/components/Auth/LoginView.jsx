@@ -141,14 +141,14 @@ export const LoginView = () => {
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <User size={13} color="var(--gold-primary)" />
-              <span>Username / Staff Name</span>
+              <span>Username / Staff ID</span>
             </label>
             <input
               type="text"
               required
               autoFocus
               className="form-input"
-              placeholder="e.g. DOFU"
+              placeholder="e.g. DOFU or Assistant Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               style={{

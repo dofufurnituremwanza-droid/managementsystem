@@ -4,7 +4,8 @@ import {
   createRecord,
   updateRecord,
   deleteRecord,
-  syncAllLocalToFirestore
+  syncAllLocalToFirestore,
+  getLocalCollection
 } from '../firebase/db';
 import {
   subscribeConnectionState,
@@ -27,7 +28,25 @@ const DEFAULT_SETTINGS = {
   currencySymbol: 'TSh',
   taxRate: 0,
   paymentDetails: 'M-Pesa / Tigo Pesa: +255 769 456 793\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA',
-  terms: '1. 50% commitment deposit required before production begins.\n2. Balance upon final inspection & delivery.\n3. Custom furniture crafted with premium Tanzanian hardwoods.'
+  terms: '1. 50% commitment deposit required before production begins.\n2. Balance upon final inspection & delivery.\n3. Custom furniture crafted with premium Tanzanian hardwoods.',
+  ownerPassword: 'DOFU5060'
+};
+
+const getStoredSession = () => {
+  try {
+    const saved = localStorage.getItem('dofu_auth_session');
+    if (!saved) return null;
+    if (saved === 'true') {
+      return { username: 'DOFU', name: 'DOFU Owner', role: 'owner' };
+    }
+    const parsed = JSON.parse(saved);
+    if (parsed && (parsed.role === 'owner' || parsed.role === 'assistant')) {
+      return parsed;
+    }
+    return { username: 'DOFU', name: 'DOFU Owner', role: 'owner' };
+  } catch {
+    return null;
+  }
 };
 
 export const AppProvider = ({ children }) => {
@@ -44,6 +63,7 @@ export const AppProvider = ({ children }) => {
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [staff, setStaff] = useState([]);
   
   // Settings with DOFU Mwanza details
   const [settings, setSettings] = useState(() => {
@@ -75,43 +95,78 @@ export const AppProvider = ({ children }) => {
   });
 
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return localStorage.getItem('dofu_auth_session') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState(() => getStoredSession());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getStoredSession()));
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      return localStorage.getItem('dofu_auth_session') === 'true' ? 'DOFU' : null;
-    } catch {
-      return null;
-    }
-  });
+  const isOwner = currentUser?.role === 'owner' || (!currentUser?.role && currentUser?.username === 'DOFU');
+  const isAssistant = currentUser?.role === 'assistant';
 
-  // Login handler
+  // Guard: if an assistant is on a restricted tab, redirect them immediately to orders
+  useEffect(() => {
+    if (isAssistant) {
+      const forbiddenTabs = ['expenses', 'notebook', 'projects', 'settings'];
+      if (forbiddenTabs.includes(activeTab)) {
+        setActiveTab('orders');
+      }
+    }
+  }, [isAssistant, activeTab]);
+
+  // Login handler supporting Owner & Staff
   const login = (username, password) => {
     const cleanUser = (username || '').trim().toUpperCase();
     const cleanPass = (password || '').trim();
+    const expectedOwnerPass = settings.ownerPassword || 'DOFU5060';
 
-    if (cleanUser === 'DOFU' && cleanPass === 'DOFU5060') {
+    // 1. Check Owner login
+    if (cleanUser === 'DOFU' && cleanPass === expectedOwnerPass) {
+      const ownerUser = {
+        username: 'DOFU',
+        name: 'DOFU Owner',
+        role: 'owner'
+      };
       try {
-        localStorage.setItem('dofu_auth_session', 'true');
+        localStorage.setItem('dofu_auth_session', JSON.stringify(ownerUser));
       } catch (e) {
         console.warn('Storage error', e);
       }
       setIsAuthenticated(true);
-      setCurrentUser('DOFU');
+      setCurrentUser(ownerUser);
       showToast('Welcome back, DOFU Management!');
       return { success: true };
-    } else {
-      return {
-        success: false,
-        message: 'Invalid username or password. Please verify credentials.'
-      };
     }
+
+    // 2. Check Assistant / Staff login
+    const staffPool = staff.length > 0 ? staff : getLocalCollection('staff');
+    const matchedStaff = staffPool.find(
+      (s) =>
+        (s.username || '').trim().toUpperCase() === cleanUser &&
+        (s.password || '').trim() === cleanPass &&
+        s.status !== 'inactive'
+    );
+
+    if (matchedStaff) {
+      const assistantUser = {
+        id: matchedStaff.id,
+        username: matchedStaff.username,
+        name: matchedStaff.name || matchedStaff.username,
+        role: 'assistant'
+      };
+      try {
+        localStorage.setItem('dofu_auth_session', JSON.stringify(assistantUser));
+      } catch (e) {
+        console.warn('Storage error', e);
+      }
+      setIsAuthenticated(true);
+      setCurrentUser(assistantUser);
+      setActiveTab('orders');
+      showToast(`Welcome, ${assistantUser.name}! (Sales & Orders Assistant)`);
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message: 'Invalid username or password. Please verify credentials or contact the owner.'
+    };
   };
 
   // Logout handler
@@ -170,6 +225,8 @@ export const AppProvider = ({ children }) => {
     unsubs.push(subscribeToCollection('expenses', (data) => setExpenses(data)));
     // Personal Notebook & Reminders
     unsubs.push(subscribeToCollection('notes', (data) => setNotes(data)));
+    // Staff & Assistants
+    unsubs.push(subscribeToCollection('staff', (data) => setStaff(data)));
 
     setLoading(false);
 
@@ -231,7 +288,9 @@ export const AppProvider = ({ children }) => {
         'inventory',
         'invoices',
         'sales',
-        'expenses'
+        'expenses',
+        'notes',
+        'staff'
       ]);
       showToast(`Synced ${count} items to Cloud Firestore!`, 'success');
     } catch (err) {
@@ -285,14 +344,41 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Staff specific helpers
+  const addStaff = async (staffData) => {
+    const timestamp = new Date().toISOString();
+    const cleanStaff = {
+      ...staffData,
+      role: 'assistant',
+      status: staffData.status || 'active',
+      createdAt: timestamp
+    };
+    return await addItem('staff', cleanStaff);
+  };
+
+  const updateStaff = async (id, updates) => {
+    return await editItem('staff', id, updates);
+  };
+
+  const removeStaff = async (id) => {
+    return await removeItem('staff', id);
+  };
+
   return (
     <AppContext.Provider
       value={{
-        // Authentication
+        // Authentication & Role
         isAuthenticated,
         currentUser,
+        isOwner,
+        isAssistant,
         login,
         logout,
+        // Staff Management
+        staff,
+        addStaff,
+        updateStaff,
+        removeStaff,
         // Navigation
         activeTab,
         setActiveTab,

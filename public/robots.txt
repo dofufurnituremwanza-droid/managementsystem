@@ -1,0 +1,4 @@
+# Disallow search engine crawlers from indexing internal business records
+User-agent: *
+Disallow: /
+

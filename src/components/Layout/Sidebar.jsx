@@ -21,17 +21,15 @@ export const Sidebar = () => {
     setActiveTab,
     mobileMenuOpen,
     setMobileMenuOpen,
-    firebaseState,
-    setModalConfig,
     clients,
     currentUser,
+    isOwner,
+    isAssistant,
     logout,
     orders,
     projects,
     invoices,
-    notes,
-    triggerSyncToFirestore,
-    syncing
+    notes
   } = useApp();
 
   // Active counts for badges
@@ -47,13 +45,14 @@ export const Sidebar = () => {
     (i) => i.status === 'unpaid' || i.status === 'partial'
   ).length;
 
-  const navItems = [
+  const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     {
       id: 'notebook',
       label: "DOFU's Notebook",
       icon: BookOpen,
-      badge: notes.length > 0 ? notes.length : null
+      badge: notes.length > 0 ? notes.length : null,
+      ownerOnly: true
     },
     {
       id: 'orders',
@@ -65,7 +64,8 @@ export const Sidebar = () => {
       id: 'projects',
       label: 'Interior Design',
       icon: Compass,
-      badge: activeProjects > 0 ? activeProjects : null
+      badge: activeProjects > 0 ? activeProjects : null,
+      ownerOnly: true
     },
     {
       id: 'clients',
@@ -79,9 +79,13 @@ export const Sidebar = () => {
       icon: FileText,
       badge: unpaidInvoices > 0 ? unpaidInvoices : null
     },
-    { id: 'expenses', label: 'Workshop Expenses', icon: Receipt },
-    { id: 'settings', label: 'Settings & Cloud', icon: Settings }
+    { id: 'expenses', label: 'Workshop Expenses', icon: Receipt, ownerOnly: true },
+    { id: 'settings', label: 'Settings & Cloud', icon: Settings, ownerOnly: true }
   ];
+
+  const navItems = isAssistant
+    ? allNavItems.filter((item) => !item.ownerOnly)
+    : allNavItems;
 
   return (
     <>
@@ -142,19 +146,21 @@ export const Sidebar = () => {
               border: '1px solid var(--border-subtle)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <div className="status-dot online" />
-              <div className="status-info">
-                <span className="status-title" style={{ color: '#fff', fontWeight: 600 }}>
-                  {currentUser || 'DOFU'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+              <div className={`status-dot ${isAssistant ? 'warning' : 'online'}`} />
+              <div className="status-info" style={{ minWidth: 0 }}>
+                <span className="status-title" style={{ color: '#fff', fontWeight: 600, display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {currentUser?.name || currentUser?.username || 'DOFU'}
                 </span>
-                <span className="status-sub">Cloud Synced</span>
+                <span className="status-sub" style={{ color: isAssistant ? '#60a5fa' : 'var(--gold-primary)', fontSize: '0.72rem' }}>
+                  {isAssistant ? 'Sales Assistant' : 'Owner / Admin'}
+                </span>
               </div>
             </div>
 
             <button
               className="btn btn-secondary btn-sm"
-              style={{ padding: '5px 8px', color: 'var(--text-secondary)' }}
+              style={{ padding: '5px 8px', color: 'var(--text-secondary)', flexShrink: 0 }}
               onClick={logout}
               title="Sign Out / Lock Portal"
             >

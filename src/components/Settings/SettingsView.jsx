@@ -10,7 +10,16 @@ import {
   CheckCircle2,
   AlertTriangle,
   Copy,
-  Save
+  Save,
+  Users,
+  UserPlus,
+  ShieldCheck,
+  ShieldAlert,
+  Trash2,
+  Eye,
+  EyeOff,
+  Lock,
+  Key
 } from 'lucide-react';
 import { FIRESTORE_RULES } from '../../firebase/securityRules';
 
@@ -27,10 +36,20 @@ export const SettingsView = () => {
     orders,
     projects,
     invoices,
-    expenses
+    expenses,
+    staff,
+    addStaff,
+    removeStaff
   } = useApp();
 
   const [formData, setFormData] = useState({ ...settings });
+  const [showNewStaffForm, setShowNewStaffForm] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    name: '',
+    username: '',
+    password: ''
+  });
+  const [revealedPasswords, setRevealedPasswords] = useState({});
 
   React.useEffect(() => {
     setFormData({ ...settings });
@@ -39,6 +58,55 @@ export const SettingsView = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettings(formData);
+  };
+
+  const handleAddStaff = async (e) => {
+    e.preventDefault();
+    const cleanUser = (newStaff.username || '').trim();
+    const cleanPass = (newStaff.password || '').trim();
+    const cleanName = (newStaff.name || '').trim();
+
+    if (!cleanUser || !cleanPass || !cleanName) {
+      showToast('Please provide Name, Username, and Password for the assistant.', 'error');
+      return;
+    }
+
+    if (cleanUser.toUpperCase() === 'DOFU') {
+      showToast('Username "DOFU" is reserved for the Owner.', 'error');
+      return;
+    }
+
+    // Check duplicate
+    if (staff.some((s) => s.username?.toUpperCase() === cleanUser.toUpperCase())) {
+      showToast(`Assistant with username "${cleanUser}" already exists.`, 'error');
+      return;
+    }
+
+    try {
+      await addStaff({
+        name: cleanName,
+        username: cleanUser,
+        password: cleanPass
+      });
+      setNewStaff({ name: '', username: '', password: '' });
+      setShowNewStaffForm(false);
+      showToast(`Assistant account "${cleanName}" created successfully!`);
+    } catch (err) {
+      showToast(`Failed to create assistant: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDeleteStaff = async (id, name) => {
+    if (window.confirm(`Are you sure you want to remove assistant "${name}"? They will no longer be able to log in.`)) {
+      await removeStaff(id);
+    }
+  };
+
+  const togglePasswordVisibility = (id) => {
+    setRevealedPasswords((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   // Export full JSON backup
@@ -227,6 +295,24 @@ export const SettingsView = () => {
             />
           </div>
 
+          <div className="form-group form-full">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--gold-primary)' }}>
+              <Key size={14} />
+              <span>Owner Master Password (Used by DOFU to Access All Features)</span>
+            </label>
+            <input
+              type="text"
+              required
+              className="form-input"
+              value={formData.ownerPassword || 'DOFU5060'}
+              onChange={(e) => setFormData({ ...formData, ownerPassword: e.target.value })}
+              placeholder="e.g. DOFU5060"
+            />
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Default: <code>DOFU5060</code>. Keep this secret. This password gives complete access to expenses, profit, and cloud settings.
+            </p>
+          </div>
+
           <div className="form-full" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
             <button type="submit" className="btn btn-primary">
               <Save size={16} />
@@ -235,6 +321,230 @@ export const SettingsView = () => {
           </div>
         </div>
       </form>
+
+      {/* Staff & Assistant Access Control Card */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
+              <Users size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff' }}>
+                Staff & Assistant Access Control
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Create accounts for sales & front-desk assistants. Assistants can take orders, add customers, and print receipts without seeing your financial margins, expenses, or notes.
+              </p>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-outline-gold"
+            onClick={() => setShowNewStaffForm(!showNewStaffForm)}
+          >
+            <UserPlus size={15} />
+            <span>{showNewStaffForm ? 'Cancel' : 'Add New Assistant'}</span>
+          </button>
+        </div>
+
+        {/* New Assistant Account Form */}
+        {showNewStaffForm && (
+          <form
+            onSubmit={handleAddStaff}
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(197, 160, 89, 0.3)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}
+          >
+            <h4 style={{ color: 'var(--gold-primary)', fontSize: '1rem', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <UserPlus size={16} />
+              <span>Create Assistant Login Credentials</span>
+            </h4>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Assistant Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  placeholder="e.g. Amani Mwita (Sales)"
+                  value={newStaff.name}
+                  onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Login Username *</label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  placeholder="e.g. amani"
+                  value={newStaff.username}
+                  onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Login Password *</label>
+                <input
+                  type="text"
+                  required
+                  className="form-input"
+                  placeholder="e.g. dofu2026"
+                  value={newStaff.password}
+                  onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '42px' }}>
+                  <ShieldCheck size={16} />
+                  <span>Save Assistant Account</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* Existing Staff Table / List */}
+        <div style={{ marginBottom: '22px' }}>
+          <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            Active Assistant Accounts ({staff.length})
+          </h4>
+
+          {staff.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '26px 12px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '10px', border: '1px dashed var(--border-subtle)' }}>
+              <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.35 }} />
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', margin: 0 }}>
+                No assistant accounts created yet. Click "Add New Assistant" above to create an account for your staff.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {staff.map((member) => {
+                const isPasswordRevealed = Boolean(revealedPasswords[member.id]);
+                return (
+                  <div
+                    key={member.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-subtle)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: 'rgba(96, 165, 250, 0.15)',
+                          color: '#60a5fa',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700
+                        }}
+                      >
+                        {member.name ? member.name[0].toUpperCase() : 'A'}
+                      </div>
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '0.92rem', display: 'block' }}>
+                          {member.name}
+                        </strong>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
+                          <span>Username: <code style={{ color: '#60a5fa' }}>{member.username}</code></span>
+                          <span>•</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            Password: <code style={{ color: 'var(--gold-light)' }}>{isPasswordRevealed ? member.password : '••••••••'}</code>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(member.id)}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 2px' }}
+                              title={isPasswordRevealed ? 'Hide Password' : 'Show Password'}
+                            >
+                              {isPasswordRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                            </button>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
+                        Sales & Orders Assistant
+                      </span>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#f87171', padding: '6px 8px' }}
+                        onClick={() => handleDeleteStaff(member.id, member.name)}
+                        title="Delete Assistant"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Clear Permissions Matrix Callout */}
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: '10px',
+            background: 'rgba(12, 14, 18, 0.6)',
+            border: '1px solid var(--border-subtle)'
+          }}
+        >
+          <h5 style={{ color: '#fff', fontSize: '0.86rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldCheck size={16} color="var(--gold-primary)" />
+            <span>Assistant vs. Owner Privacy & Permissions Matrix</span>
+          </h5>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px', fontSize: '0.78rem' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <div style={{ color: '#10b981', fontWeight: 700, marginBottom: '6px' }}>
+                ✅ What Assistants CAN Do:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Take customer orders (furniture specs, timber, upholstery)</li>
+                <li>Add & update customer directory records (CRM)</li>
+                <li>Create quotes, sales invoices & record payments</li>
+                <li>Print official customer receipts & workshop job cards</li>
+                <li>Update order production stages (carpentry, upholstery, QC, dispatch)</li>
+              </ul>
+            </div>
+
+            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <div style={{ color: '#f87171', fontWeight: 700, marginBottom: '6px' }}>
+                🔒 Strictly Hidden From Assistants (Owner Only):
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Workshop expenses (artisan wages, timber costs, rent, fuel)</li>
+                <li>Financial profit, total revenue & operating margin cards</li>
+                <li>DOFU's personal notebook, carpenter measurements & private memos</li>
+                <li>Interior design projects & site planning specifications</li>
+                <li>System settings, cloud database credentials & staff logins</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Database Backup & Export Card */}
       <div className="card">

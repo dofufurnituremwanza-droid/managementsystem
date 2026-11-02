@@ -24,7 +24,15 @@ const TAB_META = {
 };
 
 export const Header = () => {
-  const { activeTab, setActiveTab, setMobileMenuOpen, setModalConfig, firebaseState } = useApp();
+  const {
+    activeTab,
+    setActiveTab,
+    setMobileMenuOpen,
+    setModalConfig,
+    currentUser,
+    isOwner,
+    isAssistant
+  } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -59,7 +67,25 @@ export const Header = () => {
         </div>
       </div>
 
-      <div className="header-actions">
+      <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Role Pill */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 10px',
+            borderRadius: '20px',
+            background: isAssistant ? 'rgba(96, 165, 250, 0.12)' : 'rgba(197, 160, 89, 0.12)',
+            border: `1px solid ${isAssistant ? 'rgba(96, 165, 250, 0.3)' : 'rgba(197, 160, 89, 0.3)'}`,
+            fontSize: '0.75rem',
+            color: isAssistant ? '#93c5fd' : 'var(--gold-primary)'
+          }}
+        >
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isAssistant ? '#60a5fa' : 'var(--gold-primary)' }} />
+          <span>{isAssistant ? `Assistant: ${currentUser?.name || currentUser?.username}` : 'Owner / Admin'}</span>
+        </div>
+
         {/* Quick New Creation Dropdown */}
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
@@ -90,16 +116,18 @@ export const Header = () => {
                 gap: '4px'
               }}
             >
-              <button
-                className="nav-btn"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setActiveTab('notebook');
-                }}
-              >
-                <BookOpen size={16} color="#c5a059" />
-                <span>DOFU's Notebook</span>
-              </button>
+              {isOwner && (
+                <button
+                  className="nav-btn"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setActiveTab('notebook');
+                  }}
+                >
+                  <BookOpen size={16} color="#c5a059" />
+                  <span>DOFU's Notebook</span>
+                </button>
+              )}
 
               <button
                 className="nav-btn"
@@ -112,16 +140,18 @@ export const Header = () => {
                 <span>Take Customer Order</span>
               </button>
 
-              <button
-                className="nav-btn"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setModalConfig({ type: 'new_project' });
-                }}
-              >
-                <Compass size={16} color="#c5a059" />
-                <span>Interior Design Project</span>
-              </button>
+              {isOwner && (
+                <button
+                  className="nav-btn"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setModalConfig({ type: 'new_project' });
+                  }}
+                >
+                  <Compass size={16} color="#c5a059" />
+                  <span>Interior Design Project</span>
+                </button>
+              )}
 
               <button
                 className="nav-btn"
@@ -131,7 +161,7 @@ export const Header = () => {
                 }}
               >
                 <FileText size={16} color="#c5a059" />
-                <span>Quote / Invoice</span>
+                <span>Quote / Invoice / Sale</span>
               </button>
 
               <button
@@ -145,16 +175,18 @@ export const Header = () => {
                 <span>Client Record</span>
               </button>
 
-              <button
-                className="nav-btn"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  setModalConfig({ type: 'new_expense' });
-                }}
-              >
-                <Receipt size={16} color="#c5a059" />
-                <span>Workshop Expense</span>
-              </button>
+              {isOwner && (
+                <button
+                  className="nav-btn"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setModalConfig({ type: 'new_expense' });
+                  }}
+                >
+                  <Receipt size={16} color="#c5a059" />
+                  <span>Workshop Expense</span>
+                </button>
+              )}
             </div>
           )}
         </div>

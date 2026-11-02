@@ -4,12 +4,35 @@ A bespoke, luxury business management system tailored specifically for **DOFU Fu
 
 Built with **React 19**, **Vite**, **Firebase Cloud Firestore SDK**, **Lucide Icons**, and a handcrafted **Vanilla CSS Luxury Design System** inspired by deep charcoal, natural African hardwoods (Mvule, Teak, Mahogany), and champagne brass accents.
 
-## 🔐 Staff Authentication & Portal Access
+## 🔐 Staff & Role-Based Portal Access
 
-The system is protected with a luxury staff portal authentication wall:
-- **Username / Staff Name**: `DOFU`
-- **Password**: `DOFU5060`
-- **Session**: Automatically remembered on the device until "Sign Out" is clicked in the sidebar.
+The system is protected with role-based authentication separating **Owner / Management** from **Front-Desk & Sales Assistants**:
+
+### 1. 👑 Owner Access (DOFU Management)
+- **Master Username**: `DOFU`
+- **Default Master Password**: `DOFU5060` *(can be customized in Settings)*
+- **Full Access**:
+  - Executive Financial analytics, collected revenue, receivables, and net operating profit
+  - Workshop operational expenses (artisan wages, timber purchase costs, fuel, rent)
+  - DOFU's personal notebook, carpenter measurements & private memos
+  - Luxury interior design projects & space planning
+  - Cloud database credentials & settings
+  - Staff & Assistant management (create, view, and delete assistant accounts)
+
+### 2. 👥 Sales & Orders Assistant Access
+- Assistants log in with their assigned username and password created by the Owner in **Settings & Cloud**.
+- **Assistants CAN**:
+  - Take bespoke furniture orders (dimensions, timber type, fabric, upholstery specs)
+  - Add and search client records in the CRM
+  - Create proforma quotes, tax invoices, and record payments
+  - Print official client receipts and workshop artisan job cards
+  - Advance orders across production stages (carpentry, upholstery, QC, dispatch)
+- **Assistants CANNOT see (Strictly Hidden)**:
+  - ❌ Workshop expenses (artisan wages, timber supply costs, overheads)
+  - ❌ Executive financial profit & revenue cards
+  - ❌ DOFU's private notebook & memos
+  - ❌ Interior design fit-out contracts
+  - ❌ Cloud settings & assistant credential manager
 
 ---
 
