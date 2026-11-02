@@ -16,7 +16,9 @@ import {
   UserCheck,
   Calendar,
   User,
-  Eye
+  Eye,
+  ShoppingBag,
+  AlertCircle
 } from 'lucide-react';
 
 export const DashboardView = () => {
@@ -25,6 +27,7 @@ export const DashboardView = () => {
     orders,
     projects,
     invoices,
+    sales,
     expenses,
     notes,
     staff,
@@ -41,63 +44,204 @@ export const DashboardView = () => {
   yesterdayObj.setDate(yesterdayObj.getDate() - 1);
   const yesterdayStr = yesterdayObj.toLocaleDateString('en-CA');
 
-  const [selectedAuditDate, setSelectedAuditDate] = useState(todayStr);
+  // Filter for Daily Audit Log: 'all' (default), todayStr, yesterdayStr, or custom date
+  const [selectedAuditDate, setSelectedAuditDate] = useState('all');
 
-  // Daily staff activity calculation on selectedAuditDate
-  const ordersOnDate = orders.filter((o) => {
-    const d = o.recordedDate || o.orderDate || (o.createdAt ? o.createdAt.split('T')[0] : '');
-    return d === selectedAuditDate;
+  // Workshop Pipeline filter: 'all', 'in-production', 'settled'
+  const [pipelineFilter, setPipelineFilter] = useState('all');
+
+  // Right card toggle for owner: 'invoices' (default) or 'projects'
+  const [ownerRightTab, setOwnerRightTab] = useState('invoices');
+
+  // 1. Total order statistics
+  const totalOrdersCount = (orders || []).length;
+  const totalOrderValue = (orders || []).reduce(
+    (sum, o) => sum + (Number(o.totalPrice) || Number(o.price) || 0),
+    0
+  );
+
+  // 2. Paid in full orders
+  const paidInFullOrders = (orders || []).filter((o) => {
+    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return (total > 0 && deposit >= total) || o.status === 'delivered' || o.isPaidInFull;
   });
+  const paidInFullCount = paidInFullOrders.length;
 
-  const clientsOnDate = clients.filter((c) => {
-    const d = c.recordedDate || (c.createdAt ? c.createdAt.split('T')[0] : '');
-    return d === selectedAuditDate;
+  // 3. Partial paid orders
+  const partialPaidOrders = (orders || []).filter((o) => {
+    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return deposit > 0 && deposit < total && o.status !== 'delivered' && !o.isPaidInFull;
   });
+  const partialPaidCount = partialPaidOrders.length;
 
-  // Group by staff member
+  // 4. Unpaid orders
+  const unpaidOrders = (orders || []).filter((o) => {
+    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return deposit === 0 && o.status !== 'delivered' && !o.isPaidInFull;
+  });
+  const unpaidCount = unpaidOrders.length;
+
+  // 5. Revenue generated from orders
+  const revenueFromOrders = (orders || []).reduce((sum, o) => {
+    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    if (o.status === 'delivered' || o.isPaidInFull) {
+      return sum + Math.max(deposit, total);
+    }
+    return sum + deposit;
+  }, 0);
+
+  // 6. Direct Showroom Sales revenue
+  const revenueFromSales = (sales || []).reduce(
+    (sum, s) => sum + (Number(s.totalAmount) || Number(s.amount) || Number(s.totalPrice) || 0),
+    0
+  );
+
+  // 7. Standalone Invoices revenue
+  const standaloneInvoicesRevenue = (invoices || [])
+    .filter((inv) => !inv.orderId && !inv.orderNumber)
+    .reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
+
+  const totalRevenueCollected = revenueFromOrders + revenueFromSales + standaloneInvoicesRevenue;
+
+  // 8. Outstanding Balance to Collect on Delivery
+  const totalOutstandingBalance = (orders || []).reduce((sum, o) => {
+    if (o.status === 'delivered' || o.isPaidInFull) return sum;
+    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return sum + Math.max(0, total - deposit);
+  }, 0);
+
+  // 9. Total Expenses Spent
+  const totalExpensesSpent = (expenses || []).reduce(
+    (sum, e) => sum + (Number(e.amount) || 0),
+    0
+  );
+
+  // 10. Net Operating Balance
+  const netWorkshopBalance = totalRevenueCollected - totalExpensesSpent;
+
+  // Operational states
+  const activeOrders = (orders || []).filter(
+    (o) => o.status !== 'delivered' && o.status !== 'cancelled'
+  );
+
+  const activeProjects = (projects || []).filter(
+    (p) => p.stage !== 'completed' && p.stage !== 'cancelled'
+  );
+
+  const isBrandNewSystem =
+    totalOrdersCount === 0 &&
+    (clients || []).length === 0 &&
+    (invoices || []).length === 0;
+
+  // Filter helper for recorded entries
+  const matchesDate = (item) => {
+    if (selectedAuditDate === 'all') return true;
+    const d =
+      item.recordedDate ||
+      (item.createdAt ? String(item.createdAt).split('T')[0] : '') ||
+      item.orderDate ||
+      item.issueDate ||
+      item.date ||
+      '';
+    return d === selectedAuditDate;
+  };
+
+  const filteredOrders = (orders || []).filter(matchesDate);
+  const filteredClients = (clients || []).filter(matchesDate);
+  const filteredInvoices = (invoices || []).filter(matchesDate);
+  const filteredSales = (sales || []).filter(matchesDate);
+  const filteredExpenses = (expenses || []).filter(matchesDate);
+
+  // Group staff activity
   const staffActivityMap = {};
-  ordersOnDate.forEach((o) => {
-    const name = o.recordedBy || 'DOFU Management';
-    const role = o.recordedByRole || 'owner';
-    if (!staffActivityMap[name]) {
-      staffActivityMap[name] = { name, role, orders: [], clients: [], totalRevenue: 0 };
+  const recordStaffAction = (name, role, type, amount = 0) => {
+    const cleanName = name || 'DOFU Management';
+    const cleanRole = role || 'owner';
+    if (!staffActivityMap[cleanName]) {
+      staffActivityMap[cleanName] = {
+        name: cleanName,
+        role: cleanRole,
+        orders: 0,
+        clients: 0,
+        invoices: 0,
+        sales: 0,
+        revenue: 0
+      };
     }
-    staffActivityMap[name].orders.push(o);
-    staffActivityMap[name].totalRevenue += Number(o.depositPaid || 0);
-  });
+    if (type === 'order') staffActivityMap[cleanName].orders += 1;
+    if (type === 'client') staffActivityMap[cleanName].clients += 1;
+    if (type === 'invoice') staffActivityMap[cleanName].invoices += 1;
+    if (type === 'sale') staffActivityMap[cleanName].sales += 1;
+    staffActivityMap[cleanName].revenue += amount;
+  };
 
-  clientsOnDate.forEach((c) => {
-    const name = c.recordedBy || 'DOFU Management';
-    const role = c.recordedByRole || 'owner';
-    if (!staffActivityMap[name]) {
-      staffActivityMap[name] = { name, role, orders: [], clients: [], totalRevenue: 0 };
-    }
-    staffActivityMap[name].clients.push(c);
+  filteredOrders.forEach((o) => {
+    recordStaffAction(o.recordedBy, o.recordedByRole, 'order', Number(o.depositPaid || 0));
+  });
+  filteredClients.forEach((c) => {
+    recordStaffAction(c.recordedBy, c.recordedByRole, 'client');
+  });
+  filteredInvoices.forEach((i) => {
+    recordStaffAction(i.recordedBy, i.recordedByRole, 'invoice', Number(i.amountPaid || 0));
+  });
+  filteredSales.forEach((s) => {
+    recordStaffAction(s.recordedBy, s.recordedByRole, 'sale', Number(s.totalAmount || s.amount || 0));
   });
 
   const staffActivityList = Object.values(staffActivityMap);
 
-  const dailyEntries = [
-    ...ordersOnDate.map((o) => ({
-      type: 'order',
-      id: o.id,
-      title: `${o.orderNumber} - ${o.itemName}`,
-      subtitle: `Client: ${o.clientName} • Value: ${formatMoney(o.totalPrice)} (Advance: ${formatMoney(o.depositPaid)})`,
-      recordedBy: o.recordedBy || 'DOFU Management',
-      recordedByRole: o.recordedByRole || 'owner',
+  // Combine all entries into unified chronological timeline
+  const allRecordedEntries = [
+    ...filteredOrders.map((o) => {
+      const total = Number(o.totalPrice) || Number(o.price) || 0;
+      const deposit = Number(o.depositPaid) || 0;
+      const balance = Math.max(0, total - deposit);
+      return {
+        type: 'order',
+        id: o.id,
+        title: `${o.orderNumber || 'ORD'} — ${o.itemName || o.category || 'Custom Furniture'}`,
+        subtitle: `Client: ${o.clientName || 'Customer'} • Agreed: ${formatMoney(total)} | Advance: ${formatMoney(deposit)} | Balance: ${formatMoney(balance)}`,
+        status: o.status || 'pending',
+        recordedBy: o.recordedBy || 'DOFU Management',
+        recordedByRole: o.recordedByRole || 'owner',
+        time:
+          o.recordedTime ||
+          (o.createdAt
+            ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '—'),
+        date: o.recordedDate || (o.createdAt ? String(o.createdAt).split('T')[0] : '') || o.orderDate || '',
+        rawTime: o.recordedAt || o.createdAt || '',
+        data: o
+      };
+    }),
+    ...filteredInvoices.map((inv) => ({
+      type: 'invoice',
+      id: inv.id,
+      title: `${inv.type === 'quotation' ? 'Proforma Quote' : 'Commercial Invoice'} #${inv.invoiceNumber || 'INV'}`,
+      subtitle: `Billed to: ${inv.clientName || 'Customer'} • Amount: ${formatMoney(inv.totalAmount)} • Paid: ${formatMoney(inv.amountPaid)}`,
+      status: inv.status || 'draft',
+      recordedBy: inv.recordedBy || 'DOFU Management',
+      recordedByRole: inv.recordedByRole || 'owner',
       time:
-        o.recordedTime ||
-        (o.createdAt
-          ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        inv.recordedTime ||
+        (inv.createdAt
+          ? new Date(inv.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : '—'),
-      rawTime: o.recordedAt || o.createdAt || '',
-      data: o
+      date: inv.recordedDate || (inv.createdAt ? String(inv.createdAt).split('T')[0] : '') || inv.issueDate || '',
+      rawTime: inv.recordedAt || inv.createdAt || '',
+      data: inv
     })),
-    ...clientsOnDate.map((c) => ({
+    ...filteredClients.map((c) => ({
       type: 'client',
       id: c.id,
       title: `New Customer: ${c.name}`,
-      subtitle: `Phone: ${c.phone} • Address: ${c.address || 'Mwanza'}`,
+      subtitle: `Phone: ${c.phone || '—'} • Address: ${c.address || 'Mwanza'}`,
+      status: 'active',
       recordedBy: c.recordedBy || 'DOFU Management',
       recordedByRole: c.recordedByRole || 'owner',
       time:
@@ -105,70 +249,72 @@ export const DashboardView = () => {
         (c.createdAt
           ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : '—'),
+      date: c.recordedDate || (c.createdAt ? String(c.createdAt).split('T')[0] : '') || '',
       rawTime: c.recordedAt || c.createdAt || '',
       data: c
+    })),
+    ...filteredSales.map((s) => ({
+      type: 'sale',
+      id: s.id,
+      title: `Showroom Sale #${s.receiptNumber || s.saleNumber || 'SALE'}`,
+      subtitle: `Item: ${s.itemName || 'Showroom Piece'} • Total: ${formatMoney(s.totalAmount || s.amount)}`,
+      status: 'completed',
+      recordedBy: s.recordedBy || 'DOFU Management',
+      recordedByRole: s.recordedByRole || 'owner',
+      time:
+        s.recordedTime ||
+        (s.createdAt
+          ? new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '—'),
+      date: s.recordedDate || (s.createdAt ? String(s.createdAt).split('T')[0] : '') || '',
+      rawTime: s.recordedAt || s.createdAt || '',
+      data: s
+    })),
+    ...filteredExpenses.map((e) => ({
+      type: 'expense',
+      id: e.id,
+      title: `Workshop Expense: ${e.title || e.category || 'Workshop Supplies'}`,
+      subtitle: `Category: ${e.category || 'General'} • Cost: ${formatMoney(e.amount)}`,
+      status: 'paid',
+      recordedBy: e.recordedBy || 'DOFU Management',
+      recordedByRole: e.recordedByRole || 'owner',
+      time:
+        e.recordedTime ||
+        (e.createdAt
+          ? new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '—'),
+      date: e.recordedDate || (e.createdAt ? String(e.createdAt).split('T')[0] : '') || e.date || '',
+      rawTime: e.recordedAt || e.createdAt || '',
+      data: e
     }))
   ].sort((a, b) => (b.rawTime || '').localeCompare(a.rawTime || ''));
 
-  // 1. Number of orders recorded
-  const totalOrdersCount = orders.length;
-
-  // 2. Paid in full
-  const paidInFullOrders = orders.filter((o) => {
-    const total = Number(o.totalPrice) || 0;
-    const deposit = Number(o.depositPaid) || 0;
-    return (total > 0 && deposit >= total) || o.status === 'delivered';
+  // Filtered orders for the workshop list
+  const displayedOrders = (orders || []).filter((o) => {
+    if (pipelineFilter === 'in-production') {
+      return o.status !== 'delivered' && o.status !== 'cancelled';
+    }
+    if (pipelineFilter === 'settled') {
+      const total = Number(o.totalPrice) || Number(o.price) || 0;
+      const deposit = Number(o.depositPaid) || 0;
+      return (total > 0 && deposit >= total) || o.status === 'delivered' || o.isPaidInFull;
+    }
+    return true; // 'all'
   });
-  const paidInFullCount = paidInFullOrders.length;
-
-  // 3. Partial paid
-  const partialPaidOrders = orders.filter((o) => {
-    const total = Number(o.totalPrice) || 0;
-    const deposit = Number(o.depositPaid) || 0;
-    return deposit > 0 && deposit < total && o.status !== 'delivered';
-  });
-  const partialPaidCount = partialPaidOrders.length;
-
-  // 4. Revenue generated from the orders
-  const revenueFromOrders = orders.reduce(
-    (sum, o) => sum + (Number(o.depositPaid) || 0),
-    0
-  );
-
-  // 5. Expenses spent
-  const totalExpensesSpent = expenses.reduce(
-    (sum, e) => sum + (Number(e.amount) || 0),
-    0
-  );
-
-  // Operational pipeline states
-  const activeOrders = orders.filter(
-    (o) => o.status !== 'delivered' && o.status !== 'cancelled'
-  );
-
-  const activeProjects = projects.filter(
-    (p) => p.stage !== 'completed' && p.stage !== 'cancelled'
-  );
-
-  const isBrandNewSystem =
-    clients.length === 0 &&
-    orders.length === 0 &&
-    projects.length === 0 &&
-    invoices.length === 0;
 
   return (
     <div>
-      {/* Top 5 Metrics: Orders Recorded, Paid in Full, Partial Paid, Revenue Generated, Expenses Spent */}
+      {/* Top Comprehensive Stat Cards: Financial & Operational Overview */}
       {isOwner ? (
         <div className="stats-grid">
-          {/* 1. Orders Recorded */}
+          {/* 1. Orders Recorded & Total Contract Value */}
           <div className="stat-card">
             <div className="stat-info">
               <div className="stat-label">Orders Recorded</div>
               <div className="stat-value">{totalOrdersCount}</div>
               <div className="stat-note">
                 <Armchair size={13} color="var(--gold-primary)" />
-                <span>Total customer orders</span>
+                <span>Agreed: {formatMoney(totalOrderValue)}</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.12)', color: 'var(--gold-primary)' }}>
@@ -176,33 +322,33 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* 2. Paid in Full */}
+          {/* 2. Total Revenue Collected */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Paid in Full</div>
+              <div className="stat-label">Revenue Collected</div>
               <div className="stat-value" style={{ color: '#10b981' }}>
-                {paidInFullCount}
+                {formatMoney(totalRevenueCollected)}
               </div>
               <div className="stat-note">
-                <CheckCircle2 size={13} color="#10b981" />
-                <span>100% balance settled</span>
+                <TrendingUp size={13} color="#10b981" />
+                <span>Deposits, settlements & sales</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-              <CheckCircle2 size={22} />
+              <DollarSign size={22} />
             </div>
           </div>
 
-          {/* 3. Partial Paid */}
+          {/* 3. Balance to Collect on Delivery */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Partial Paid</div>
+              <div className="stat-label">Balance to Collect</div>
               <div className="stat-value" style={{ color: '#f59e0b' }}>
-                {partialPaidCount}
+                {formatMoney(totalOutstandingBalance)}
               </div>
               <div className="stat-note">
                 <Clock size={13} color="#f59e0b" />
-                <span>Advance deposit received</span>
+                <span>Pending final delivery</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
@@ -210,20 +356,20 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* 4. Revenue Generated from Orders */}
+          {/* 4. Settlement Status */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Revenue Generated</div>
-              <div className="stat-value" style={{ color: '#10b981' }}>
-                {formatMoney(revenueFromOrders)}
+              <div className="stat-label">Settled / In Workshop</div>
+              <div className="stat-value" style={{ color: '#60a5fa' }}>
+                {paidInFullCount} / {activeOrders.length}
               </div>
               <div className="stat-note">
-                <TrendingUp size={13} color="#10b981" />
-                <span>Realized from orders</span>
+                <CheckCircle2 size={13} color="#60a5fa" />
+                <span>{paidInFullCount} paid in full, {partialPaidCount} partial</span>
               </div>
             </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-              <DollarSign size={22} />
+            <div className="stat-icon-wrap" style={{ background: 'rgba(96, 165, 250, 0.12)', color: '#60a5fa' }}>
+              <CheckCircle2 size={22} />
             </div>
           </div>
 
@@ -243,17 +389,44 @@ export const DashboardView = () => {
               <Receipt size={22} />
             </div>
           </div>
+
+          {/* 6. Net Operating Balance */}
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Net Cash Position</div>
+              <div
+                className="stat-value"
+                style={{ color: netWorkshopBalance >= 0 ? 'var(--gold-primary)' : '#ef4444' }}
+              >
+                {formatMoney(netWorkshopBalance)}
+              </div>
+              <div className="stat-note">
+                <span>Revenue − Expenses</span>
+              </div>
+            </div>
+            <div
+              className="stat-icon-wrap"
+              style={{
+                background:
+                  netWorkshopBalance >= 0
+                    ? 'rgba(197, 160, 89, 0.15)'
+                    : 'rgba(239, 68, 68, 0.15)',
+                color: netWorkshopBalance >= 0 ? 'var(--gold-primary)' : '#ef4444'
+              }}
+            >
+              <TrendingUp size={22} />
+            </div>
+          </div>
         </div>
       ) : (
         /* Assistant Operational Stats */
         <div className="stats-grid">
-          {/* Orders Recorded */}
           <div className="stat-card">
             <div className="stat-info">
               <div className="stat-label">Orders Recorded</div>
               <div className="stat-value">{totalOrdersCount}</div>
               <div className="stat-note">
-                <span>Total orders logged</span>
+                <span>Value: {formatMoney(totalOrderValue)}</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.12)', color: 'var(--gold-primary)' }}>
@@ -261,7 +434,6 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* Paid in Full */}
           <div className="stat-card">
             <div className="stat-info">
               <div className="stat-label">Paid in Full</div>
@@ -275,305 +447,31 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* Partial Paid */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Partial Paid</div>
-              <div className="stat-value" style={{ color: '#f59e0b' }}>{partialPaidCount}</div>
-              <div className="stat-note">
-                <span>Advance deposit received</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
-              <Clock size={22} />
-            </div>
-          </div>
-
-          {/* Active in Production */}
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">In Production</div>
+              <div className="stat-label">In Workshop</div>
               <div className="stat-value" style={{ color: '#60a5fa' }}>{activeOrders.length}</div>
               <div className="stat-note">
-                <span>Currently in workshop</span>
+                <span>Currently in production</span>
               </div>
             </div>
             <div className="stat-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#60a5fa' }}>
               <Users size={22} />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* OWNER AUDIT LOG: Who Recorded Orders & Customers On Each Day */}
-      {isOwner && (
-        <div className="daily-audit-card">
-          <div className="daily-audit-header">
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '6px',
-                    background: 'rgba(197, 160, 89, 0.18)',
-                    color: 'var(--gold-primary)'
-                  }}
-                >
-                  <UserCheck size={18} />
-                </span>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)', margin: 0 }}>
-                  Daily Staff Activity & Entries Log
-                </h3>
+          <div className="stat-card">
+            <div className="stat-info">
+              <div className="stat-label">Registered Customers</div>
+              <div className="stat-value" style={{ color: 'var(--gold-light)' }}>{(clients || []).length}</div>
+              <div className="stat-note">
+                <span>Saved client directory</span>
               </div>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0' }}>
-                Track who recorded orders and registered new customers on any selected date.
-              </p>
             </div>
-
-            {/* Date Pickers & Quick Toggles */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <div className="daily-pill-filter">
-                <button
-                  type="button"
-                  className={`daily-pill-btn ${selectedAuditDate === todayStr ? 'active' : ''}`}
-                  onClick={() => setSelectedAuditDate(todayStr)}
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  className={`daily-pill-btn ${selectedAuditDate === yesterdayStr ? 'active' : ''}`}
-                  onClick={() => setSelectedAuditDate(yesterdayStr)}
-                >
-                  Yesterday
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Calendar size={14} color="var(--gold-primary)" />
-                <input
-                  type="date"
-                  className="form-input"
-                  style={{ padding: '4px 10px', fontSize: '0.82rem', width: 'auto' }}
-                  value={selectedAuditDate}
-                  onChange={(e) => setSelectedAuditDate(e.target.value)}
-                  title="Choose any date to audit staff activity"
-                />
-              </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(197, 160, 89, 0.12)', color: 'var(--gold-primary)' }}>
+              <Users size={22} />
             </div>
           </div>
-
-          {/* Daily Summary Highlights for Selected Date */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-              gap: '12px',
-              marginBottom: '18px'
-            }}
-          >
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                padding: '12px 14px'
-              }}
-            >
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Orders Recorded on {selectedAuditDate === todayStr ? 'Today' : selectedAuditDate}
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
-                {ordersOnDate.length}
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>
-                Advance Received: {formatMoney(ordersOnDate.reduce((s, o) => s + (Number(o.depositPaid) || 0), 0))}
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                padding: '12px 14px'
-              }}
-            >
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                New Customers Registered
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>
-                {clientsOnDate.length}
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                {clientsOnDate.length === 0 ? 'No new clients registered' : `${clientsOnDate.length} customer(s)`}
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                padding: '12px 14px'
-              }}
-            >
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Active Recorders on this Day
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
-                {staffActivityList.length}
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                {staffActivityList.length === 0
-                  ? 'No entries recorded'
-                  : staffActivityList.map((s) => s.name).join(', ')}
-              </div>
-            </div>
-          </div>
-
-          {/* Breakdown by Staff Member */}
-          {staffActivityList.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.76rem', color: 'var(--gold-light)', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Staff Member Activity:
-              </div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {staffActivityList.map((s) => (
-                  <div
-                    key={s.name}
-                    style={{
-                      background: 'rgba(0, 0, 0, 0.35)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <div
-                      className={`staff-badge ${
-                        s.role === 'assistant' ? 'staff-badge-assistant' : 'staff-badge-owner'
-                      }`}
-                    >
-                      <User size={13} />
-                      <span>{s.name}</span>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)' }}>
-                      <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{s.orders.length}</span> order(s) •{' '}
-                      <span style={{ color: '#60a5fa', fontWeight: 700 }}>{s.clients.length}</span> customer(s)
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Detailed Entries Timeline for the Day */}
-          {dailyEntries.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '24px 16px',
-                background: 'rgba(0,0,0,0.2)',
-                borderRadius: '8px',
-                color: 'var(--text-muted)',
-                fontSize: '0.84rem'
-              }}
-            >
-              No orders or customers were recorded on {selectedAuditDate === todayStr ? 'today' : selectedAuditDate}.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {dailyEntries.map((entry) => (
-                <div
-                  key={`${entry.type}-${entry.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-subtle)',
-                    flexWrap: 'wrap',
-                    gap: '10px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '6px',
-                        background:
-                          entry.type === 'order'
-                            ? 'rgba(197, 160, 89, 0.15)'
-                            : 'rgba(59, 130, 246, 0.15)',
-                        color: entry.type === 'order' ? 'var(--gold-primary)' : '#60a5fa'
-                      }}
-                    >
-                      {entry.type === 'order' ? <Armchair size={15} /> : <Users size={15} />}
-                    </span>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
-                        {entry.title}
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                        {entry.subtitle}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <div
-                        className={`staff-badge ${
-                          entry.recordedByRole === 'assistant'
-                            ? 'staff-badge-assistant'
-                            : 'staff-badge-owner'
-                        }`}
-                      >
-                        <User size={12} />
-                        <span>{entry.recordedBy}</span>
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        🕒 {entry.time}
-                      </div>
-                    </div>
-
-                    {entry.type === 'order' ? (
-                      <button
-                        className="btn btn-outline-gold btn-sm"
-                        onClick={() => setModalConfig({ type: 'order_receipt', data: entry.data })}
-                        title="View & Print Official Order Receipt"
-                      >
-                        <Receipt size={12} />
-                        <span>Receipt</span>
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setActiveTab('clients')}
-                        title="View Customer List"
-                      >
-                        <Eye size={12} />
-                        <span>View</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -621,7 +519,7 @@ export const DashboardView = () => {
         </div>
       )}
 
-      {/* Onboarding Guide if brand new system with zero data */}
+      {/* ONBOARDING GUIDE: Only shown if the system is 100% brand new with zero data */}
       {isBrandNewSystem && (
         <div
           className="card card-gold-accent"
@@ -758,8 +656,353 @@ export const DashboardView = () => {
         </div>
       )}
 
+      {/* RECORDED ACTIVITY & STAFF AUDIT LOG: Shows EVERYTHING recorded in the system */}
+      <div className="daily-audit-card">
+        <div className="daily-audit-header">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '6px',
+                  background: 'rgba(197, 160, 89, 0.18)',
+                  color: 'var(--gold-primary)'
+                }}
+              >
+                <UserCheck size={18} />
+              </span>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-main)', margin: 0 }}>
+                Recorded System Activity & Staff Audit Log
+              </h3>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0' }}>
+              Live audit of every order, invoice, customer, and transaction recorded in DOFU system.
+            </p>
+          </div>
+
+          {/* Quick Filters: All Records, Today, Yesterday, or Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="daily-pill-filter">
+              <button
+                type="button"
+                className={`daily-pill-btn ${selectedAuditDate === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedAuditDate('all')}
+                title="Show all recorded activities"
+              >
+                All Records ({allRecordedEntries.length})
+              </button>
+              <button
+                type="button"
+                className={`daily-pill-btn ${selectedAuditDate === todayStr ? 'active' : ''}`}
+                onClick={() => setSelectedAuditDate(todayStr)}
+                title="Filter records entered today"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                className={`daily-pill-btn ${selectedAuditDate === yesterdayStr ? 'active' : ''}`}
+                onClick={() => setSelectedAuditDate(yesterdayStr)}
+                title="Filter records entered yesterday"
+              >
+                Yesterday
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Calendar size={14} color="var(--gold-primary)" />
+              <input
+                type="date"
+                className="form-input"
+                style={{ padding: '4px 10px', fontSize: '0.82rem', width: 'auto' }}
+                value={selectedAuditDate === 'all' ? '' : selectedAuditDate}
+                onChange={(e) => setSelectedAuditDate(e.target.value || 'all')}
+                title="Filter entries on specific calendar date"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Summary Highlights for Selected Filter */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+            marginBottom: '18px'
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '12px 14px'
+            }}
+          >
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Orders Recorded
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--gold-primary)', marginTop: '2px' }}>
+              {filteredOrders.length}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>
+              Advance: {formatMoney(filteredOrders.reduce((s, o) => s + (Number(o.depositPaid) || 0), 0))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '12px 14px'
+            }}
+          >
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Invoices & Billing
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+              {filteredInvoices.length}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              Value: {formatMoney(filteredInvoices.reduce((s, i) => s + (Number(i.totalAmount) || 0), 0))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '12px 14px'
+            }}
+          >
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Customers Registered
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>
+              {filteredClients.length}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              {filteredClients.length === 0 ? 'No new clients in filter' : `${filteredClients.length} customer(s)`}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '12px 14px'
+            }}
+          >
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Staff Recorders
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
+              {staffActivityList.length}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              {staffActivityList.length === 0
+                ? 'No staff recorded yet'
+                : staffActivityList.map((s) => s.name).join(', ')}
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown by Staff Member */}
+        {staffActivityList.length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.76rem', color: 'var(--gold-light)', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Recorded by Staff Members:
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {staffActivityList.map((s) => (
+                <div
+                  key={s.name}
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <div
+                    className={`staff-badge ${
+                      s.role === 'assistant' ? 'staff-badge-assistant' : 'staff-badge-owner'
+                    }`}
+                  >
+                    <User size={13} />
+                    <span>{s.name}</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                    <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{s.orders}</span> order(s) •{' '}
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>{s.invoices}</span> invoice(s) •{' '}
+                    <span style={{ color: '#60a5fa', fontWeight: 700 }}>{s.clients}</span> client(s)
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Timeline of All Entries Recorded */}
+        {allRecordedEntries.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '28px 16px',
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '8px',
+              color: 'var(--text-muted)',
+              fontSize: '0.86rem'
+            }}
+          >
+            No entries found for the selected filter. Click <strong>All Records</strong> to see everything recorded in the system.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {allRecordedEntries.map((entry) => (
+              <div
+                key={`${entry.type}-${entry.id}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--border-subtle)',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '260px', flex: 1 }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      background:
+                        entry.type === 'order'
+                          ? 'rgba(197, 160, 89, 0.15)'
+                          : entry.type === 'invoice'
+                          ? 'rgba(16, 185, 129, 0.15)'
+                          : entry.type === 'sale'
+                          ? 'rgba(245, 158, 11, 0.15)'
+                          : entry.type === 'expense'
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : 'rgba(59, 130, 246, 0.15)',
+                      color:
+                        entry.type === 'order'
+                          ? 'var(--gold-primary)'
+                          : entry.type === 'invoice'
+                          ? '#10b981'
+                          : entry.type === 'sale'
+                          ? '#f59e0b'
+                          : entry.type === 'expense'
+                          ? '#ef4444'
+                          : '#60a5fa'
+                    }}
+                  >
+                    {entry.type === 'order' && <Armchair size={16} />}
+                    {entry.type === 'invoice' && <FileText size={16} />}
+                    {entry.type === 'client' && <Users size={16} />}
+                    {entry.type === 'sale' && <ShoppingBag size={16} />}
+                    {entry.type === 'expense' && <Receipt size={16} />}
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                      {entry.title}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      {entry.subtitle}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div
+                      className={`staff-badge ${
+                        entry.recordedByRole === 'assistant'
+                          ? 'staff-badge-assistant'
+                          : 'staff-badge-owner'
+                      }`}
+                    >
+                      <User size={12} />
+                      <span>{entry.recordedBy}</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {entry.date ? `${entry.date} • ` : ''}🕒 {entry.time}
+                    </div>
+                  </div>
+
+                  {entry.type === 'order' && (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        className="btn btn-outline-gold btn-sm"
+                        onClick={() => setModalConfig({ type: 'order_receipt', data: entry.data })}
+                        title="View & Print Official Order & Payment Receipt"
+                      >
+                        <Receipt size={12} />
+                        <span>Receipt</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {entry.type === 'invoice' && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setModalConfig({ type: 'print_invoice', data: entry.data })}
+                      title="View & Print Official Commercial Invoice"
+                    >
+                      <FileText size={12} />
+                      <span>Invoice</span>
+                    </button>
+                  )}
+
+                  {entry.type === 'client' && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setActiveTab('clients')}
+                      title="View in Customer Directory"
+                    >
+                      <Eye size={12} />
+                      <span>View</span>
+                    </button>
+                  )}
+
+                  {entry.type === 'sale' && (
+                    <button
+                      className="btn btn-outline-gold btn-sm"
+                      onClick={() => setModalConfig({ type: 'sale_receipt', data: entry.data })}
+                      title="View Showroom Sale Receipt"
+                    >
+                      <Receipt size={12} />
+                      <span>Receipt</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* DOFU's Reminders & Urgent Notes Widget - OWNER ONLY */}
-      {isOwner && notes.length > 0 && (
+      {isOwner && notes && notes.length > 0 && (
         <div
           className="card card-gold-accent"
           style={{
@@ -855,204 +1098,195 @@ export const DashboardView = () => {
         </div>
       )}
 
-      {/* Main Split: Left Workshop Orders | Right Projects & Billing */}
+      {/* Main Split Grid: Left Workshop Production Pipeline | Right Quotes, Invoices & Projects */}
       <div className="dashboard-split-grid">
-        {/* Workshop Production Card */}
+        {/* Workshop Orders Pipeline */}
         <div className="card">
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '18px'
+              marginBottom: '14px',
+              flexWrap: 'wrap',
+              gap: '10px'
             }}
           >
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
-                Workshop Production Pipeline
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)', margin: 0 }}>
+                Workshop Orders Pipeline
               </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Active furniture orders across carpentry & upholstery
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                All custom furniture pieces across carpentry & finishing
               </p>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('orders')}>
-              <span>View All</span>
-              <ArrowRight size={14} />
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('orders')}>
+                <span>View All ({orders.length})</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Pipeline filter pills */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            <button
+              type="button"
+              className={`daily-pill-btn ${pipelineFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setPipelineFilter('all')}
+              style={{ fontSize: '0.75rem', padding: '3px 10px' }}
+            >
+              All Orders ({orders.length})
+            </button>
+            <button
+              type="button"
+              className={`daily-pill-btn ${pipelineFilter === 'in-production' ? 'active' : ''}`}
+              onClick={() => setPipelineFilter('in-production')}
+              style={{ fontSize: '0.75rem', padding: '3px 10px' }}
+            >
+              In Workshop ({activeOrders.length})
+            </button>
+            <button
+              type="button"
+              className={`daily-pill-btn ${pipelineFilter === 'settled' ? 'active' : ''}`}
+              onClick={() => setPipelineFilter('settled')}
+              style={{ fontSize: '0.75rem', padding: '3px 10px' }}
+            >
+              Settled & Delivered ({paidInFullCount})
             </button>
           </div>
 
-          {activeOrders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
               <Armchair size={36} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-              <p style={{ fontSize: '0.86rem' }}>No active furniture pieces currently in the workshop.</p>
+              <p style={{ fontSize: '0.86rem' }}>No orders found for this filter.</p>
               <button
                 className="btn btn-outline-gold btn-sm"
                 style={{ marginTop: '12px' }}
                 onClick={() => setModalConfig({ type: 'new_order' })}
               >
-                <Plus size={14} /> Add First Furniture Order
+                <Plus size={14} /> Add Customer Order
               </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {activeOrders.slice(0, 5).map((order) => (
-                <div
-                  key={order.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--border-subtle)'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.88rem' }}>
-                      {order.itemName}
+              {displayedOrders.slice(0, 6).map((order) => {
+                const total = Number(order.totalPrice) || Number(order.price) || 0;
+                const deposit = Number(order.depositPaid) || 0;
+                const balance = Math.max(0, total - deposit);
+                return (
+                  <div
+                    key={order.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-subtle)',
+                      flexWrap: 'wrap',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                        #{order.orderNumber || 'ORD'} — {order.itemName || order.category || 'Custom Piece'}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                        Client: <strong style={{ color: 'var(--text-main)' }}>{order.clientName}</strong> | Value: {formatMoney(total)}
+                        {balance > 0 && <span style={{ color: '#f59e0b', marginLeft: '6px' }}>(Due: {formatMoney(balance)})</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                      Client: {order.clientName} | 🪵 {order.woodType || 'Hardwood'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className={`badge badge-${order.status || 'pending'}`}>{order.status || 'pending'}</span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Due: {order.targetDeliveryDate || order.dueDate || 'Upon completion'}
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-outline-gold btn-sm"
+                        onClick={() => setModalConfig({ type: 'order_receipt', data: order })}
+                        title="View Order & Payment Receipt"
+                      >
+                        <Receipt size={12} />
+                        <span>Receipt</span>
+                      </button>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className={`badge badge-${order.status}`}>{order.status}</span>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Due: {order.dueDate || 'No date'}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Right Column: Interior Projects for Owner, Billing / Sales Overview for Assistant */}
-        {isOwner ? (
-          <div className="card">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '18px'
-              }}
-            >
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
-                  Interior Design Projects
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Active residential & commercial styling sites
-                </p>
-              </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('projects')}>
-                <span>View All</span>
-                <ArrowRight size={14} />
-              </button>
+        {/* Right Column: Quotes, Invoices & Sales Billing */}
+        <div className="card">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}
+          >
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)', margin: 0 }}>
+                Quotes, Invoices & Sales Billing
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                Customer quotations, auto-prepared invoices & sales records
+              </p>
             </div>
 
-            {activeProjects.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
-                <Compass size={36} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-                <p style={{ fontSize: '0.86rem' }}>No interior design contracts currently active.</p>
-                <button
-                  className="btn btn-outline-gold btn-sm"
-                  style={{ marginTop: '12px' }}
-                  onClick={() => setModalConfig({ type: 'new_project' })}
-                >
-                  <Plus size={14} /> Start First Interior Project
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {activeProjects.slice(0, 5).map((project) => {
-                  const checklist = project.checklist || [];
-                  const doneCount = checklist.filter((c) => c.done).length;
-                  const progressPct =
-                    checklist.length > 0 ? Math.round((doneCount / checklist.length) * 100) : 0;
-
-                  return (
-                    <div
-                      key={project.id}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: '8px',
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid var(--border-subtle)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem' }}>{project.title}</strong>
-                        <span className="badge badge-draft">{project.stage}</span>
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        Client: {project.clientName} | {project.rooms || 'Rooms'}
-                      </div>
-                      {/* Mini progress */}
-                      <div
-                        style={{
-                          height: '4px',
-                          background: 'rgba(255,255,255,0.08)',
-                          borderRadius: '2px',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${progressPct}%`,
-                            height: '100%',
-                            background: 'var(--gold-primary)'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Assistant View: Recent Invoices & Sales Receipts */
-          <div className="card">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '18px'
-              }}
-            >
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--text-main)' }}>
-                  Quotes, Invoices & Sales
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Customer quotations & official sales billing
-                </p>
-              </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {isOwner && projects && projects.length > 0 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    type="button"
+                    className={`daily-pill-btn ${ownerRightTab === 'invoices' ? 'active' : ''}`}
+                    onClick={() => setOwnerRightTab('invoices')}
+                    style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                  >
+                    Invoices ({invoices.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`daily-pill-btn ${ownerRightTab === 'projects' ? 'active' : ''}`}
+                    onClick={() => setOwnerRightTab('projects')}
+                    style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                  >
+                    Projects ({projects.length})
+                  </button>
+                </div>
+              )}
               <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('billing')}>
-                <span>View All</span>
+                <span>View All ({invoices.length})</span>
                 <ArrowRight size={14} />
               </button>
             </div>
+          </div>
 
-            {invoices.length === 0 ? (
+          {ownerRightTab === 'invoices' || !isOwner ? (
+            invoices.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
                 <FileText size={36} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-                <p style={{ fontSize: '0.86rem' }}>No invoices or receipts created yet.</p>
+                <p style={{ fontSize: '0.86rem' }}>No invoices or quotes recorded yet.</p>
                 <button
                   className="btn btn-primary btn-sm"
                   style={{ marginTop: '12px' }}
                   onClick={() => setModalConfig({ type: 'new_invoice' })}
                 >
-                  <Plus size={14} /> Create First Invoice / Sale
+                  <Plus size={14} /> Create First Invoice / Quote
                 </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {invoices.slice(0, 5).map((inv) => (
+                {invoices.slice(0, 6).map((inv) => (
                   <div
                     key={inv.id}
                     style={{
@@ -1062,29 +1296,87 @@ export const DashboardView = () => {
                       padding: '12px 14px',
                       borderRadius: '8px',
                       background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-subtle)'
+                      border: '1px solid var(--border-subtle)',
+                      flexWrap: 'wrap',
+                      gap: '10px'
                     }}
                   >
                     <div>
                       <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem', display: 'block' }}>
-                        {inv.invoiceNumber}
+                        #{inv.invoiceNumber || 'INV'} • {inv.type === 'quotation' ? 'Proforma Quote' : 'Commercial Invoice'}
                       </strong>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                        {inv.clientName} • {formatMoney(inv.totalAmount)}
+                        Client: <strong style={{ color: 'var(--text-main)' }}>{inv.clientName}</strong> • {formatMoney(inv.totalAmount)}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span className={`badge badge-${inv.status}`}>{inv.status}</span>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        {inv.issueDate}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className={`badge badge-${inv.status || 'draft'}`}>{inv.status || 'draft'}</span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          {inv.issueDate || 'Recent'}
+                        </div>
                       </div>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setModalConfig({ type: 'print_invoice', data: inv })}
+                        title="View, Print or Share PDF Invoice"
+                      >
+                        <FileText size={12} />
+                        <span>View</span>
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+            )
+          ) : (
+            /* Owner Projects Tab View */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {activeProjects.slice(0, 5).map((project) => {
+                const checklist = project.checklist || [];
+                const doneCount = checklist.filter((c) => c.done).length;
+                const progressPct =
+                  checklist.length > 0 ? Math.round((doneCount / checklist.length) * 100) : 0;
+
+                return (
+                  <div
+                    key={project.id}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-subtle)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <strong style={{ color: 'var(--text-main)', fontSize: '0.88rem' }}>{project.title}</strong>
+                      <span className="badge badge-draft">{project.stage}</span>
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      Client: {project.clientName} | {project.rooms || 'Rooms'}
+                    </div>
+                    <div
+                      style={{
+                        height: '4px',
+                        background: 'rgba(255,255,255,0.08)',
+                        borderRadius: '2px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${progressPct}%`,
+                          height: '100%',
+                          background: 'var(--gold-primary)'
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

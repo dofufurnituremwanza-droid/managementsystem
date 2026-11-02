@@ -37,13 +37,25 @@ export const setLocalCollection = (collectionName, items) => {
 /**
  * Realtime collection subscription
  * If Firestore is available, listens via onSnapshot.
- * Otherwise, emits local collection and listens to local storage events.
+ * Also emits local collection immediately and listens to both cross-tab storage
+ * and same-tab custom events for instant, 100% reliable UI reactivity.
  */
 export const subscribeToCollection = (collectionName, onData, onError) => {
+  let unsubFirestore = null;
+
+  const emitLocal = () => {
+    try {
+      const items = getLocalCollection(collectionName);
+      onData(items);
+    } catch (e) {
+      console.warn(`Error reading local collection ${collectionName}`, e);
+    }
+  };
+
   if (db) {
     try {
       const colRef = collection(db, collectionName);
-      const unsubscribe = onSnapshot(
+      unsubFirestore = onSnapshot(
         colRef,
         (snapshot) => {
           const items = snapshot.docs.map((d) => ({
@@ -61,28 +73,35 @@ export const subscribeToCollection = (collectionName, onData, onError) => {
           console.warn(`Firestore subscription fallback for ${collectionName}:`, err.message);
           if (onError) onError(err);
           // Fallback to local mirror
-          onData(getLocalCollection(collectionName));
+          emitLocal();
         }
       );
-      return unsubscribe;
     } catch (e) {
       console.warn(`Failed to attach Firestore snapshot for ${collectionName}`, e);
     }
   }
 
-  // Fallback to local storage
-  const current = getLocalCollection(collectionName);
-  onData(current);
+  // Always emit local data immediately so UI renders instantaneously without delay
+  emitLocal();
 
+  // Listen for cross-tab storage changes
   const storageHandler = (e) => {
     if (e.key === `${LOCAL_PREFIX}${collectionName}`) {
-      onData(getLocalCollection(collectionName));
+      emitLocal();
     }
   };
+  // Listen for same-tab custom events dispatched on add/update/delete
+  const customHandler = () => {
+    emitLocal();
+  };
+
   window.addEventListener('storage', storageHandler);
+  window.addEventListener(`dofu_update_${collectionName}`, customHandler);
 
   return () => {
+    if (typeof unsubFirestore === 'function') unsubFirestore();
     window.removeEventListener('storage', storageHandler);
+    window.removeEventListener(`dofu_update_${collectionName}`, customHandler);
   };
 };
 
@@ -105,7 +124,11 @@ export const createRecord = async (collectionName, data) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      return { id: docRef.id, ...newRecord };
+      const saved = { id: docRef.id, ...newRecord };
+      const items = getLocalCollection(collectionName);
+      setLocalCollection(collectionName, [saved, ...items.filter((i) => i.id !== saved.id)]);
+      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
+      return saved;
     } catch (err) {
       console.warn(`Firestore write failed for ${collectionName}, falling back to local:`, err);
     }
@@ -140,6 +163,10 @@ export const updateRecord = async (collectionName, id, updates) => {
         ...cleanUpdates,
         updatedAt: serverTimestamp()
       });
+      const items = getLocalCollection(collectionName);
+      const updated = items.map((item) => (item.id === id ? { ...item, ...cleanUpdates } : item));
+      setLocalCollection(collectionName, updated);
+      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
       return { id, ...cleanUpdates };
     } catch (err) {
       console.warn(`Firestore update failed for ${collectionName}/${id}:`, err);
@@ -162,6 +189,10 @@ export const deleteRecord = async (collectionName, id) => {
     try {
       const docRef = doc(db, collectionName, id);
       await deleteDoc(docRef);
+      const items = getLocalCollection(collectionName);
+      const filtered = items.filter((item) => item.id !== id);
+      setLocalCollection(collectionName, filtered);
+      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
       return true;
     } catch (err) {
       console.warn(`Firestore delete failed for ${collectionName}/${id}:`, err);

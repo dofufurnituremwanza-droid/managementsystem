@@ -340,6 +340,22 @@ export const AppProvider = ({ children }) => {
     return `${settings.currencySymbol || '$'} ${formatted}`;
   };
 
+  // Direct state setter map for instant local reactivity
+  const getSetterFor = (collectionName) => {
+    switch (collectionName) {
+      case 'clients': return setClients;
+      case 'orders': return setOrders;
+      case 'projects': return setProjects;
+      case 'inventory': return setInventory;
+      case 'invoices': return setInvoices;
+      case 'sales': return setSales;
+      case 'expenses': return setExpenses;
+      case 'notes': return setNotes;
+      case 'staff': return setStaff;
+      default: return null;
+    }
+  };
+
   // CRUD helpers
   const addItem = async (collectionName, data) => {
     try {
@@ -362,6 +378,15 @@ export const AppProvider = ({ children }) => {
       };
 
       const record = await createRecord(collectionName, enrichedData);
+
+      const setter = getSetterFor(collectionName);
+      if (setter && record) {
+        setter((prev) => {
+          if (prev.some((item) => item.id === record.id)) return prev;
+          return [record, ...prev];
+        });
+      }
+
       showToast(`Added to ${collectionName} successfully!`);
       return record;
     } catch (err) {
@@ -381,6 +406,14 @@ export const AppProvider = ({ children }) => {
         lastModifiedAt: now.toISOString()
       };
       const record = await updateRecord(collectionName, id, enrichedUpdates);
+
+      const setter = getSetterFor(collectionName);
+      if (setter) {
+        setter((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, ...enrichedUpdates } : item))
+        );
+      }
+
       showToast(`Updated ${collectionName} successfully!`);
       return record;
     } catch (err) {
@@ -392,6 +425,12 @@ export const AppProvider = ({ children }) => {
   const removeItem = async (collectionName, id) => {
     try {
       await deleteRecord(collectionName, id);
+
+      const setter = getSetterFor(collectionName);
+      if (setter) {
+        setter((prev) => prev.filter((item) => item.id !== id));
+      }
+
       showToast(`Deleted from ${collectionName}.`);
       return true;
     } catch (err) {
