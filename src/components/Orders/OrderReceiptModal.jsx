@@ -12,20 +12,21 @@ export const OrderReceiptModal = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharingPdf, setIsSharingPdf] = useState(false);
 
-  const order = modalConfig.data;
+  const isOpen = modalConfig.type === 'order_receipt' && Boolean(modalConfig.data);
+  const order = isOpen ? modalConfig.data : null;
 
-  if (modalConfig.type !== 'order_receipt' || !order) return null;
+  const linkedInvoice = isOpen && order
+    ? invoices?.find(
+        (inv) =>
+          (order.id && inv.orderId === order.id) ||
+          (order.orderNumber && inv.orderNumber === order.orderNumber) ||
+          (order.invoiceId && inv.id === order.invoiceId)
+      )
+    : null;
 
-  const linkedInvoice = invoices?.find(
-    (inv) =>
-      (order.id && inv.orderId === order.id) ||
-      (order.orderNumber && inv.orderNumber === order.orderNumber) ||
-      (order.invoiceId && inv.id === order.invoiceId)
-  );
-
-  const orderQty = Math.max(1, Number(order.quantity) || 1);
-  let resolvedTotal = Number(order.totalPrice) || Number(order.price) || 0;
-  let resolvedUnit = Number(order.unitPrice) || 0;
+  const orderQty = Math.max(1, Number(order?.quantity) || 1);
+  let resolvedTotal = Number(order?.totalPrice) || Number(order?.price) || 0;
+  let resolvedUnit = Number(order?.unitPrice) || 0;
 
   if (resolvedUnit > 0 && resolvedTotal === 0) {
     resolvedTotal = resolvedUnit * orderQty;
@@ -43,19 +44,22 @@ export const OrderReceiptModal = () => {
   }
 
   const totalPrice = resolvedTotal;
-  const depositPaid = Number(order.depositPaid) || 0;
+  const depositPaid = Number(order?.depositPaid) || 0;
   const balance = Math.max(0, totalPrice - depositPaid);
   const isFullyPaid = balance <= 0 && totalPrice > 0;
 
   // Auto-heal any order in Firestore that was missing unitPrice or totalPrice
   React.useEffect(() => {
-    if (order?.id && (Number(order.totalPrice) <= 0 || !order.unitPrice) && resolvedTotal > 0) {
+    if (isOpen && order?.id && (Number(order.totalPrice) <= 0 || !order.unitPrice) && resolvedTotal > 0) {
       editItem('orders', order.id, {
         totalPrice: resolvedTotal,
         unitPrice: resolvedUnit
       });
     }
-  }, [order?.id, resolvedTotal]);
+  }, [isOpen, order?.id, resolvedTotal]);
+
+  // Safe early exit AFTER all hooks have executed
+  if (!isOpen || !order) return null;
 
   const handlePrint = () => {
     window.print();

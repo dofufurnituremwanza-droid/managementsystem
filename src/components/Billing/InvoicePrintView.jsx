@@ -12,18 +12,19 @@ export const InvoicePrintView = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharingPdf, setIsSharingPdf] = useState(false);
 
-  const invoice = modalConfig.data;
-
-  if (modalConfig.type !== 'print_invoice' || !invoice) return null;
+  const isOpen = modalConfig.type === 'print_invoice' && Boolean(modalConfig.data);
+  const invoice = isOpen ? modalConfig.data : null;
 
   // Find linked customer order if applicable to ensure product price is never lost or 0
-  const linkedOrder = orders?.find(
-    (o) =>
-      (invoice.orderId && o.id === invoice.orderId) ||
-      (invoice.orderNumber && o.orderNumber === invoice.orderNumber) ||
-      (invoice.invoiceNumber && o.invoiceNumber === invoice.invoiceNumber) ||
-      (invoice.id && o.invoiceId === invoice.id)
-  );
+  const linkedOrder = isOpen && invoice
+    ? orders?.find(
+        (o) =>
+          (invoice.orderId && o.id === invoice.orderId) ||
+          (invoice.orderNumber && o.orderNumber === invoice.orderNumber) ||
+          (invoice.invoiceNumber && o.invoiceNumber === invoice.invoiceNumber) ||
+          (invoice.id && o.invoiceId === invoice.id)
+      )
+    : null;
 
   const orderTotal = Number(linkedOrder?.totalPrice) || Number(linkedOrder?.price) || 0;
   const orderDeposit = Number(linkedOrder?.depositPaid) || 0;
@@ -32,7 +33,7 @@ export const InvoicePrintView = () => {
 
   // Robust line items: fallback to linked order specs so price is never 0
   const rawItems =
-    invoice.items && invoice.items.length > 0
+    invoice?.items && invoice.items.length > 0
       ? invoice.items
       : linkedOrder
       ? [
@@ -53,8 +54,8 @@ export const InvoicePrintView = () => {
     if (itemUnit <= 0) {
       if (orderUnit > 0) itemUnit = orderUnit;
       else if (orderTotal > 0) itemUnit = Math.round(orderTotal / itemQty);
-      else if (Number(invoice.totalAmount) > 0) itemUnit = Math.round(Number(invoice.totalAmount) / itemQty);
-      else if (Number(invoice.subtotal) > 0) itemUnit = Math.round(Number(invoice.subtotal) / itemQty);
+      else if (Number(invoice?.totalAmount) > 0) itemUnit = Math.round(Number(invoice.totalAmount) / itemQty);
+      else if (Number(invoice?.subtotal) > 0) itemUnit = Math.round(Number(invoice.subtotal) / itemQty);
     }
     return {
       ...item,
@@ -69,26 +70,26 @@ export const InvoicePrintView = () => {
     0
   );
 
-  const discount = Math.max(0, Number(invoice.discount) || 0);
-  const taxRate = Math.max(0, Number(invoice.taxRate) || 0);
+  const discount = Math.max(0, Number(invoice?.discount) || 0);
+  const taxRate = Math.max(0, Number(invoice?.taxRate) || 0);
   const taxAmount =
-    Number(invoice.taxAmount) ||
+    Number(invoice?.taxAmount) ||
     (taxRate > 0 ? Math.round(Math.max(0, computedSubtotal - discount) * (taxRate / 100)) : 0);
 
   const resolvedSubtotal =
-    Number(invoice.subtotal) > 0 ? Number(invoice.subtotal) : computedSubtotal > 0 ? computedSubtotal : orderTotal;
+    Number(invoice?.subtotal) > 0 ? Number(invoice.subtotal) : computedSubtotal > 0 ? computedSubtotal : orderTotal;
 
-  let resolvedTotal = Number(invoice.totalAmount) || 0;
+  let resolvedTotal = Number(invoice?.totalAmount) || 0;
   if (resolvedTotal <= 0) {
     resolvedTotal = computedSubtotal > 0 ? Math.max(0, computedSubtotal - discount) + taxAmount : orderTotal;
   }
 
   const resolvedAmountPaid =
-    invoice.amountPaid !== undefined && Number(invoice.amountPaid) > 0
+    invoice?.amountPaid !== undefined && Number(invoice.amountPaid) > 0
       ? Number(invoice.amountPaid)
       : orderDeposit;
 
-  const isQuote = invoice.type === 'quotation';
+  const isQuote = invoice?.type === 'quotation';
   const totalAmount = resolvedTotal;
   const amountPaid = resolvedAmountPaid;
   const balance = Math.max(0, totalAmount - amountPaid);
@@ -97,6 +98,7 @@ export const InvoicePrintView = () => {
   // Auto-heal any existing invoices in the database that were saved with 0
   React.useEffect(() => {
     if (
+      isOpen &&
       invoice?.id &&
       (Number(invoice.totalAmount) <= 0 ||
         !invoice.items ||
@@ -110,7 +112,10 @@ export const InvoicePrintView = () => {
         items: resolvedItems
       });
     }
-  }, [invoice?.id, resolvedTotal]);
+  }, [isOpen, invoice?.id, resolvedTotal]);
+
+  // Safe early exit AFTER all hooks have executed
+  if (!isOpen || !invoice) return null;
 
   const handlePrint = () => {
     window.print();

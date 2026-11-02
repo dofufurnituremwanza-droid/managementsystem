@@ -25,6 +25,8 @@ import { InvoiceModal } from './components/Billing/InvoiceModal';
 import { InvoicePrintView } from './components/Billing/InvoicePrintView';
 import { ExpenseModal } from './components/Expenses/ExpenseModal';
 import { FirebaseConfigModal } from './components/Settings/FirebaseConfigModal';
+import { SaleReceiptModal } from './components/Inventory/SaleReceiptModal';
+import { ErrorBoundary } from './components/Common/ErrorBoundary';
 
 const MainLayout = () => {
   const { activeTab, isOwner } = useApp();
@@ -58,6 +60,7 @@ const MainLayout = () => {
       <InvoicePrintView />
       {isOwner && <ExpenseModal />}
       {isOwner && <FirebaseConfigModal />}
+      <SaleReceiptModal />
 
       <Toast />
     </div>
@@ -81,8 +84,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
