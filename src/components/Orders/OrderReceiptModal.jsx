@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
 import confetti from 'canvas-confetti';
 
@@ -42,7 +42,6 @@ export const OrderReceiptModal = () => {
     const confirmed = window.confirm(
       `Confirm Final Payment on Delivery for Order ${order.orderNumber}?\n\n` +
       `Client: ${order.clientName}\n` +
-      `Item: ${order.itemName}\n` +
       `Remaining Balance: ${formatMoney(remaining)}\n\n` +
       `Click OK to mark as PAID IN FULL and update status to Delivered & Installed.`
     );
@@ -50,9 +49,13 @@ export const OrderReceiptModal = () => {
 
     setIsUpdating(true);
     try {
+      const prevDeposit = order.depositPaid || 0;
+      const prevStatus = order.status || 'ready';
       await editItem('orders', order.id, {
         depositPaid: totalPrice,
-        status: 'delivered'
+        status: 'delivered',
+        previousDeposit: prevDeposit,
+        previousStatus: prevStatus
       });
 
       // Update in-modal data so the receipt updates in real-time
@@ -61,7 +64,9 @@ export const OrderReceiptModal = () => {
         data: {
           ...prev.data,
           depositPaid: totalPrice,
-          status: 'delivered'
+          status: 'delivered',
+          previousDeposit: prevDeposit,
+          previousStatus: prevStatus
         }
       }));
 
@@ -76,6 +81,46 @@ export const OrderReceiptModal = () => {
       showToast(`Order ${order.orderNumber} settled! Marked as PAID IN FULL on delivery.`, 'success');
     } catch (err) {
       showToast(`Error updating order: ${err.message}`, 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUnmarkPaidInFull = async () => {
+    const restoredDeposit = (order.previousDeposit !== undefined && order.previousDeposit !== null)
+      ? Number(order.previousDeposit)
+      : 0;
+
+    const confirmed = window.confirm(
+      `Unmark Order ${order.orderNumber} as Paid in Full?\n\n` +
+      `Client: ${order.clientName}\n` +
+      `Current Total: ${formatMoney(totalPrice)}\n` +
+      `Advance will be restored to: ${formatMoney(restoredDeposit)}\n` +
+      `Status will return to: Ready for Delivery.\n\n` +
+      `Do you want to proceed?`
+    );
+    if (!confirmed) return;
+
+    setIsUpdating(true);
+    try {
+      const restoredStatus = order.previousStatus || 'ready';
+      await editItem('orders', order.id, {
+        depositPaid: restoredDeposit,
+        status: restoredStatus
+      });
+
+      setModalConfig((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          depositPaid: restoredDeposit,
+          status: restoredStatus
+        }
+      }));
+
+      showToast(`Order ${order.orderNumber} payment settlement unmarked. Reverted to advance deposit.`, 'info');
+    } catch (err) {
+      showToast(`Error unmarking order: ${err.message}`, 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -102,18 +147,31 @@ export const OrderReceiptModal = () => {
       footer={
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            {!isFullyPaid && (
+            {!isFullyPaid ? (
               <button
                 type="button"
                 className="btn-tick-settle"
                 onClick={handleMarkPaidInFull}
                 disabled={isUpdating}
                 style={{ padding: '8px 14px', fontSize: '0.84rem' }}
+                title="Mark this order as completely paid upon delivery"
               >
                 <span className="tick-box" style={{ width: '18px', height: '18px' }}>
                   <Check size={13} strokeWidth={3} />
                 </span>
                 <span>Mark Paid in Full on Delivery ✓</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-unmark-settle"
+                onClick={handleUnmarkPaidInFull}
+                disabled={isUpdating}
+                style={{ padding: '8px 14px', fontSize: '0.84rem' }}
+                title="Revert settlement back to partial advance / outstanding balance"
+              >
+                <RotateCcw size={14} />
+                <span>Unmark Paid in Full (Revert)</span>
               </button>
             )}
           </div>
@@ -139,8 +197,8 @@ export const OrderReceiptModal = () => {
         </div>
       }
     >
-      {/* Interactive Settlement Banner if Customer Has Outstanding Balance */}
-      {!isFullyPaid && (
+      {/* Interactive Settlement Banner: Mark or Unmark Paid in Full */}
+      {!isFullyPaid ? (
         <div className="btn-tick-settle-modal" onClick={handleMarkPaidInFull} title="Click to settle remaining balance upon delivery">
           <div className="tick-box-large">
             <Check size={20} strokeWidth={3} />
@@ -153,9 +211,60 @@ export const OrderReceiptModal = () => {
               </span>
             </div>
             <div style={{ fontSize: '0.78rem', color: '#d1fae5', marginTop: '2px' }}>
-              Outstanding Balance: <strong>{formatMoney(balance)}</strong>. Click this tick box to record full payment upon work delivery and stamp as PAID IN FULL.
+              Outstanding Balance: <strong>{formatMoney(balance)}</strong>. Click this banner to record full payment upon work delivery and stamp as PAID IN FULL.
             </div>
           </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '8px',
+            padding: '10px 14px',
+            marginBottom: '16px',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#059669',
+                color: '#ffffff'
+              }}
+            >
+              <Check size={15} strokeWidth={3} />
+            </span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#34d399', letterSpacing: '0.02em' }}>
+                CUSTOMER HAS FULLY PAID ON DELIVERY ✓
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Marked as Paid in Full ({formatMoney(totalPrice)}). Click unmark if this was done by mistake.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-unmark-settle"
+            onClick={handleUnmarkPaidInFull}
+            disabled={isUpdating}
+            style={{ padding: '6px 12px', fontSize: '0.76rem' }}
+            title="Unmark paid in full and revert back to advance deposit"
+          >
+            <RotateCcw size={13} />
+            <span>Unmark Paid in Full</span>
+          </button>
         </div>
       )}
 

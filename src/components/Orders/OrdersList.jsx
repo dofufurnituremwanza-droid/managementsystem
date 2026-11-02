@@ -15,6 +15,7 @@ import {
   Check,
   AlertCircle,
   Receipt,
+  RotateCcw,
   X
 } from 'lucide-react';
 
@@ -47,14 +48,17 @@ export const OrdersList = () => {
     const confirmed = window.confirm(
       `Confirm Final Payment on Delivery for Order ${order.orderNumber}?\n\n` +
       `Client: ${order.clientName}\n` +
-      `Item: ${order.itemName}\n` +
+      `Item: ${order.itemName || order.category || 'Custom Furniture'}\n` +
       `Remaining Balance: ${formatMoney(remaining)}\n\n` +
-      `Click OK to mark as PAID IN FULL and update status to Delivered & Installed.`
+      `Click OK to mark as PAID IN FULL and set status to Delivered & Installed.`
     );
     if (!confirmed) return;
 
     await editItem('orders', order.id, {
+      previousDeposit: currentPaid,
+      previousStatus: order.status || 'ready',
       depositPaid: total,
+      isPaidInFull: true,
       status: 'delivered'
     });
 
@@ -67,6 +71,26 @@ export const OrdersList = () => {
     } catch (e) {}
 
     showToast(`Order ${order.orderNumber} marked as PAID IN FULL on delivery!`, 'success');
+  };
+
+  const handleUnmarkPaidInFull = async (order) => {
+    const defaultRevert = order.previousDeposit !== undefined ? order.previousDeposit : 0;
+    const promptInput = window.prompt(
+      `Unmark finished payment for Order ${order.orderNumber}?\n\n` +
+      `Enter previous advance deposit amount to restore (or keep ${defaultRevert}):`,
+      String(defaultRevert)
+    );
+    if (promptInput === null) return;
+
+    const restoredDeposit = Math.max(0, Number(promptInput) || 0);
+
+    await editItem('orders', order.id, {
+      depositPaid: restoredDeposit,
+      isPaidInFull: false,
+      status: order.previousStatus || 'ready'
+    });
+
+    showToast(`Order ${order.orderNumber} unmarked. Reverted to partial payment (${formatMoney(restoredDeposit)}).`, 'warning');
   };
 
   const handleDelete = (id, num) => {
@@ -247,10 +271,21 @@ export const OrdersList = () => {
                         </div>
 
                         {balance <= 0 && Number(order.totalPrice) > 0 ? (
-                          <div className="payment-tick-badge paid-full">
-                            <CheckCircle2 size={13} />
-                            <span>PAID IN FULL ✓</span>
-                          </div>
+                          <>
+                            <div className="payment-tick-badge paid-full">
+                              <CheckCircle2 size={13} />
+                              <span>PAID IN FULL ✓</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-unmark-settle"
+                              title="Customer hasn't finished paying or marked in error? Click to unmark and revert to partial payment"
+                              onClick={() => handleUnmarkPaidInFull(order)}
+                            >
+                              <RotateCcw size={11} />
+                              <span>Unmark Paid Full</span>
+                            </button>
+                          </>
                         ) : (
                           <>
                             <div style={{ fontSize: '0.74rem', color: '#f59e0b', fontWeight: 600 }}>
@@ -268,7 +303,7 @@ export const OrdersList = () => {
                               <span className="tick-box">
                                 <Check size={12} strokeWidth={3} />
                               </span>
-                              <span>Mark Paid Full</span>
+                              <span>Mark Finished Paying ✓</span>
                             </button>
                           </>
                         )}
