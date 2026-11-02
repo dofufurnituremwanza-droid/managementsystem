@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, Sparkles, Phone, MapPin, Mail, RotateCcw, FileText, MessageCircle } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
+import { shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
 
 export const OrderReceiptModal = () => {
@@ -199,9 +200,18 @@ export const OrderReceiptModal = () => {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }} className="modal-footer-actions">
             <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
               Close
+            </button>
+            <button
+              type="button"
+              className="btn btn-whatsapp"
+              onClick={() => shareOrderReceiptViaWhatsApp(order, formatMoney)}
+              title="Share this receipt directly to customer's WhatsApp"
+            >
+              <MessageCircle size={16} />
+              <span>Share to WhatsApp</span>
             </button>
             {linkedInvoice && (
               <button
@@ -403,17 +413,8 @@ export const OrderReceiptModal = () => {
         }}
       >
         {/* DOFU Brand Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            borderBottom: '2.5px solid #111827',
-            paddingBottom: '16px',
-            marginBottom: '18px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="print-header-layout">
+          <div className="print-header-brand">
             <img
               src="/logo.png"
               alt="DOFU Logo"
@@ -453,7 +454,7 @@ export const OrderReceiptModal = () => {
           </div>
 
           {/* Document Type Badge & Official Stamp */}
-          <div style={{ textAlign: 'right' }}>
+          <div className="print-header-stamp">
             <div
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -498,20 +499,7 @@ export const OrderReceiptModal = () => {
         </div>
 
         {/* Client & Production Metadata Card */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '6px',
-            padding: '12px 16px',
-            marginBottom: '18px',
-            fontSize: '0.82rem',
-            color: '#1e293b'
-          }}
-        >
+        <div className="print-meta-grid">
           <div>
             <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: '0.04em' }}>
               CLIENT INFORMATION
@@ -726,18 +714,7 @@ export const OrderReceiptModal = () => {
         </div>
 
         {/* Dual Signature Blocks (Customer & DOFU) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '30px',
-            marginTop: '26px',
-            paddingTop: '12px',
-            borderTop: '1px dashed #cbd5e1',
-            color: '#334155',
-            fontSize: '0.78rem'
-          }}
-        >
+        <div className="print-signature-grid">
           <div>
             <div style={{ height: '36px' }} />
             <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px' }}>

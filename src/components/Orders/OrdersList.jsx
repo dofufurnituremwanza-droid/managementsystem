@@ -18,8 +18,10 @@ import {
   RotateCcw,
   User,
   Calendar,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react';
+import { shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 
 export const OrdersList = () => {
   const { orders, invoices, staff, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
@@ -502,6 +504,15 @@ export const OrdersList = () => {
                         >
                           <Receipt size={13} />
                           <span className="no-print">PDF Receipt</span>
+                        </button>
+
+                        <button
+                          className="btn-whatsapp btn-sm"
+                          title={`Share Order Receipt to Customer via WhatsApp (${order.clientPhone || 'Client'})`}
+                          onClick={() => shareOrderReceiptViaWhatsApp(order, formatMoney)}
+                        >
+                          <MessageCircle size={13} />
+                          <span className="no-print">WhatsApp</span>
                         </button>
 
                         <button

@@ -12,8 +12,10 @@ import {
   CreditCard,
   DollarSign,
   CheckCircle2,
-  Check
+  Check,
+  MessageCircle
 } from 'lucide-react';
+import { shareInvoiceViaWhatsApp } from '../../utils/whatsappShare';
 
 export const InvoicesList = () => {
   const { invoices, orders, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
@@ -378,6 +380,15 @@ export const InvoicesList = () => {
                         >
                           <Printer size={13} />
                           <span className="no-print">PDF / Print</span>
+                        </button>
+
+                        <button
+                          className="btn-whatsapp btn-sm"
+                          title={`Share ${inv.type === 'quotation' ? 'Quote' : 'Invoice'} to Customer via WhatsApp (${inv.clientPhone || 'Client'})`}
+                          onClick={() => shareInvoiceViaWhatsApp(inv, formatMoney)}
+                        >
+                          <MessageCircle size={13} />
+                          <span className="no-print">WhatsApp</span>
                         </button>
 
                         {balance > 0 && (

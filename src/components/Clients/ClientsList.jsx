@@ -13,8 +13,10 @@ import {
   Armchair,
   FileText,
   User,
-  Calendar
+  Calendar,
+  MessageCircle
 } from 'lucide-react';
+import { normalizePhoneForWhatsApp } from '../../utils/whatsappShare';
 
 export const ClientsList = () => {
   const { clients, orders, invoices, staff, setModalConfig, removeItem } = useApp();
@@ -168,9 +170,26 @@ export const ClientsList = () => {
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', color: '#60a5fa' }}>
-                        <Phone size={13} color="var(--gold-primary)" />
-                        <span>{client.phone}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', color: '#60a5fa', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Phone size={13} color="var(--gold-primary)" />
+                          <span>{client.phone}</span>
+                        </div>
+                        {client.phone && (
+                          <button
+                            type="button"
+                            className="btn-whatsapp btn-sm"
+                            style={{ padding: '2px 8px', fontSize: '0.7rem', height: '22px' }}
+                            title={`Chat with ${client.name} on WhatsApp`}
+                            onClick={() => {
+                              const p = normalizePhoneForWhatsApp(client.phone);
+                              if (p) window.open(`https://wa.me/${p}`, '_blank', 'noopener,noreferrer');
+                            }}
+                          >
+                            <MessageCircle size={11} />
+                            <span>WhatsApp</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td>

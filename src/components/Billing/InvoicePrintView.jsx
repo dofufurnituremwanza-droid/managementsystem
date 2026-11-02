@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
-import { Printer, Download, CheckCircle2, Check, ShieldCheck } from 'lucide-react';
+import { Printer, Download, CheckCircle2, Check, ShieldCheck, MessageCircle } from 'lucide-react';
 import { downloadReceiptPdf } from '../../utils/receiptDownloader';
+import { shareInvoiceViaWhatsApp } from '../../utils/whatsappShare';
 import confetti from 'canvas-confetti';
 
 export const InvoicePrintView = () => {
@@ -124,9 +125,18 @@ export const InvoicePrintView = () => {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }} className="modal-footer-actions">
             <button className="btn btn-secondary" onClick={() => setModalConfig({ type: null })}>
               Close
+            </button>
+            <button
+              type="button"
+              className="btn btn-whatsapp"
+              onClick={() => shareInvoiceViaWhatsApp(invoice, formatMoney)}
+              title={`Send official ${isQuote ? 'proforma quote' : 'invoice'} directly to customer via WhatsApp`}
+            >
+              <MessageCircle size={16} />
+              <span>Share to WhatsApp</span>
             </button>
             <button
               className="btn btn-outline-gold"
@@ -178,17 +188,8 @@ export const InvoicePrintView = () => {
         }}
       >
         {/* Header Branding */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            borderBottom: '2.5px solid #111827',
-            paddingBottom: '18px',
-            marginBottom: '20px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="print-header-layout">
+          <div className="print-header-brand">
             <img src="/logo.png" alt="DOFU Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
             <div>
               <h1
@@ -213,7 +214,7 @@ export const InvoicePrintView = () => {
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
+          <div className="print-header-stamp">
             <h2
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -299,19 +300,7 @@ export const InvoicePrintView = () => {
         </div>
 
         {/* Bill To & Payment Summary Card */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '6px',
-            padding: '12px 16px',
-            marginBottom: '20px',
-            color: '#0f172a'
-          }}
-        >
+        <div className="print-meta-grid">
           <div>
             <span
               style={{
@@ -586,24 +575,15 @@ export const InvoicePrintView = () => {
         </div>
 
         {/* Dual Signatures */}
-        <div
-          style={{
-            marginTop: '28px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            color: '#1e293b',
-            paddingTop: '14px',
-            borderTop: '1px dashed #cbd5e1'
-          }}
-        >
-          <div style={{ textAlign: 'center', width: '220px' }}>
+        <div className="print-signature-grid">
+          <div>
             <div style={{ height: '36px' }} />
             <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.76rem', color: '#475569' }}>
               <strong>Authorized Signatory (DOFU)</strong>
               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Stamp & Signature</div>
             </div>
           </div>
-          <div style={{ textAlign: 'center', width: '220px' }}>
+          <div>
             <div style={{ height: '36px' }} />
             <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px', fontSize: '0.76rem', color: '#475569' }}>
               <strong>Client Acceptance & Handover</strong>

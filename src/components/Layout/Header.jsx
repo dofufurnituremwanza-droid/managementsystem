@@ -83,18 +83,19 @@ export const Header = () => {
           {theme === 'dark' ? (
             <>
               <Sun size={15} color="#e5c07b" />
-              <span>Light</span>
+              <span className="theme-toggle-label">Light</span>
             </>
           ) : (
             <>
               <Moon size={15} color="#b8860b" />
-              <span>Dark</span>
+              <span className="theme-toggle-label">Dark</span>
             </>
           )}
         </button>
 
         {/* Role Pill */}
         <div
+          className="header-role-pill"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -104,11 +105,13 @@ export const Header = () => {
             background: isAssistant ? 'rgba(96, 165, 250, 0.12)' : 'rgba(197, 160, 89, 0.12)',
             border: `1px solid ${isAssistant ? 'rgba(96, 165, 250, 0.3)' : 'rgba(197, 160, 89, 0.3)'}`,
             fontSize: '0.75rem',
-            color: isAssistant ? '#93c5fd' : 'var(--gold-primary)'
+            color: isAssistant ? '#93c5fd' : 'var(--gold-primary)',
+            whiteSpace: 'nowrap'
           }}
         >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isAssistant ? '#60a5fa' : 'var(--gold-primary)' }} />
-          <span>{isAssistant ? `Assistant: ${currentUser?.name || currentUser?.username}` : 'Owner / Admin'}</span>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isAssistant ? '#60a5fa' : 'var(--gold-primary)', flexShrink: 0 }} />
+          <span className="role-text-full">{isAssistant ? `Assistant: ${currentUser?.name || currentUser?.username}` : 'Owner / Admin'}</span>
+          <span className="role-text-short" style={{ display: 'none' }}>{isAssistant ? 'Staff' : 'Owner'}</span>
         </div>
 
         {/* Quick New Creation Dropdown */}
