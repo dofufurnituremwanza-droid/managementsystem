@@ -11,20 +11,53 @@ import {
   Edit2,
   Trash2,
   Armchair,
-  FileText
+  FileText,
+  User,
+  Calendar
 } from 'lucide-react';
 
 export const ClientsList = () => {
-  const { clients, orders, invoices, setModalConfig, removeItem } = useApp();
+  const { clients, orders, invoices, staff, setModalConfig, removeItem } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [staffFilter, setStaffFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customDate, setCustomDate] = useState('');
+
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toLocaleDateString('en-CA');
+
+  // Collect unique registrars from clients & configured staff
+  const staffOptions = Array.from(
+    new Set([
+      'DOFU Management',
+      ...(staff || []).map((s) => s.name || s.username).filter(Boolean),
+      ...clients.map((c) => c.recordedBy).filter(Boolean)
+    ])
+  );
 
   const filtered = clients.filter((c) => {
-    return (
+    const matchSearch =
       (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.address || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      (c.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.recordedBy || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    const clientRecorder = c.recordedBy || 'DOFU Management';
+    const matchStaff = staffFilter === 'all' || clientRecorder.toLowerCase() === staffFilter.toLowerCase();
+
+    const clientDateOnly = c.recordedDate || (c.createdAt ? c.createdAt.split('T')[0] : '');
+    let matchDate = true;
+    if (dateFilter === 'today') {
+      matchDate = clientDateOnly === todayStr;
+    } else if (dateFilter === 'yesterday') {
+      matchDate = clientDateOnly === yesterdayStr;
+    } else if (dateFilter === 'custom' && customDate) {
+      matchDate = clientDateOnly === customDate;
+    }
+
+    return matchSearch && matchStaff && matchDate;
   });
 
   const handleDelete = (id, name) => {
@@ -47,6 +80,44 @@ export const ClientsList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <select
+            className="form-select"
+            style={{ width: 'auto' }}
+            value={staffFilter}
+            onChange={(e) => setStaffFilter(e.target.value)}
+            title="Filter by who registered the customer"
+          >
+            <option value="all">👤 All Staff / Registrars</option>
+            {staffOptions.map((st) => (
+              <option key={st} value={st}>
+                👤 {st}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="form-select"
+            style={{ width: 'auto' }}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            title="Filter customers by registration date"
+          >
+            <option value="all">📅 All Dates</option>
+            <option value="today">📅 Entered Today</option>
+            <option value="yesterday">📅 Entered Yesterday</option>
+            <option value="custom">📅 Specific Date...</option>
+          </select>
+
+          {dateFilter === 'custom' && (
+            <input
+              type="date"
+              className="form-input"
+              style={{ width: 'auto', padding: '6px 10px' }}
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+            />
+          )}
         </div>
 
         <button
@@ -79,6 +150,7 @@ export const ClientsList = () => {
                 <th>Customer Full Name</th>
                 <th>Phone Number</th>
                 <th>Delivery Address</th>
+                <th>Registered By & Date</th>
                 <th>Orders / Invoices</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
@@ -113,6 +185,36 @@ export const ClientsList = () => {
                       >
                         <MapPin size={13} color="var(--wood-warm)" />
                         <span>{client.address || 'No address specified'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div
+                          className={`staff-badge ${
+                            client.recordedByRole === 'assistant' ? 'staff-badge-assistant' : 'staff-badge-owner'
+                          }`}
+                          title={`Registered by: ${client.recordedBy || 'DOFU Management'} (${client.recordedByRole || 'owner'})`}
+                        >
+                          <User size={12} />
+                          <span>{client.recordedBy || 'DOFU Management'}</span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.73rem',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Calendar size={11} color="var(--gold-primary)" />
+                          <span>
+                            {(client.recordedDate || (client.createdAt ? client.createdAt.split('T')[0] : '')) === todayStr
+                              ? 'Today'
+                              : (client.recordedDate || (client.createdAt ? client.createdAt.split('T')[0] : 'Earlier'))}
+                            {client.recordedTime ? ` • ${client.recordedTime}` : ''}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Armchair,
@@ -12,7 +12,11 @@ import {
   Plus,
   CheckCircle2,
   Pin,
-  Receipt
+  Receipt,
+  UserCheck,
+  Calendar,
+  User,
+  Eye
 } from 'lucide-react';
 
 export const DashboardView = () => {
@@ -23,6 +27,7 @@ export const DashboardView = () => {
     invoices,
     expenses,
     notes,
+    staff,
     setActiveTab,
     setModalConfig,
     formatMoney,
@@ -30,6 +35,80 @@ export const DashboardView = () => {
     isAssistant,
     currentUser
   } = useApp();
+
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = yesterdayObj.toLocaleDateString('en-CA');
+
+  const [selectedAuditDate, setSelectedAuditDate] = useState(todayStr);
+
+  // Daily staff activity calculation on selectedAuditDate
+  const ordersOnDate = orders.filter((o) => {
+    const d = o.recordedDate || o.orderDate || (o.createdAt ? o.createdAt.split('T')[0] : '');
+    return d === selectedAuditDate;
+  });
+
+  const clientsOnDate = clients.filter((c) => {
+    const d = c.recordedDate || (c.createdAt ? c.createdAt.split('T')[0] : '');
+    return d === selectedAuditDate;
+  });
+
+  // Group by staff member
+  const staffActivityMap = {};
+  ordersOnDate.forEach((o) => {
+    const name = o.recordedBy || 'DOFU Management';
+    const role = o.recordedByRole || 'owner';
+    if (!staffActivityMap[name]) {
+      staffActivityMap[name] = { name, role, orders: [], clients: [], totalRevenue: 0 };
+    }
+    staffActivityMap[name].orders.push(o);
+    staffActivityMap[name].totalRevenue += Number(o.depositPaid || 0);
+  });
+
+  clientsOnDate.forEach((c) => {
+    const name = c.recordedBy || 'DOFU Management';
+    const role = c.recordedByRole || 'owner';
+    if (!staffActivityMap[name]) {
+      staffActivityMap[name] = { name, role, orders: [], clients: [], totalRevenue: 0 };
+    }
+    staffActivityMap[name].clients.push(c);
+  });
+
+  const staffActivityList = Object.values(staffActivityMap);
+
+  const dailyEntries = [
+    ...ordersOnDate.map((o) => ({
+      type: 'order',
+      id: o.id,
+      title: `${o.orderNumber} - ${o.itemName}`,
+      subtitle: `Client: ${o.clientName} • Value: ${formatMoney(o.totalPrice)} (Advance: ${formatMoney(o.depositPaid)})`,
+      recordedBy: o.recordedBy || 'DOFU Management',
+      recordedByRole: o.recordedByRole || 'owner',
+      time:
+        o.recordedTime ||
+        (o.createdAt
+          ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '—'),
+      rawTime: o.recordedAt || o.createdAt || '',
+      data: o
+    })),
+    ...clientsOnDate.map((c) => ({
+      type: 'client',
+      id: c.id,
+      title: `New Customer: ${c.name}`,
+      subtitle: `Phone: ${c.phone} • Address: ${c.address || 'Mwanza'}`,
+      recordedBy: c.recordedBy || 'DOFU Management',
+      recordedByRole: c.recordedByRole || 'owner',
+      time:
+        c.recordedTime ||
+        (c.createdAt
+          ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '—'),
+      rawTime: c.recordedAt || c.createdAt || '',
+      data: c
+    }))
+  ].sort((a, b) => (b.rawTime || '').localeCompare(a.rawTime || ''));
 
   // 1. Number of orders recorded
   const totalOrdersCount = orders.length;
@@ -223,6 +302,278 @@ export const DashboardView = () => {
               <Users size={22} />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* OWNER AUDIT LOG: Who Recorded Orders & Customers On Each Day */}
+      {isOwner && (
+        <div className="daily-audit-card">
+          <div className="daily-audit-header">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    background: 'rgba(197, 160, 89, 0.18)',
+                    color: 'var(--gold-primary)'
+                  }}
+                >
+                  <UserCheck size={18} />
+                </span>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#fff', margin: 0 }}>
+                  Daily Staff Activity & Entries Log
+                </h3>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0' }}>
+                Track who recorded orders and registered new customers on any selected date.
+              </p>
+            </div>
+
+            {/* Date Pickers & Quick Toggles */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div className="daily-pill-filter">
+                <button
+                  type="button"
+                  className={`daily-pill-btn ${selectedAuditDate === todayStr ? 'active' : ''}`}
+                  onClick={() => setSelectedAuditDate(todayStr)}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className={`daily-pill-btn ${selectedAuditDate === yesterdayStr ? 'active' : ''}`}
+                  onClick={() => setSelectedAuditDate(yesterdayStr)}
+                >
+                  Yesterday
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={14} color="var(--gold-primary)" />
+                <input
+                  type="date"
+                  className="form-input"
+                  style={{ padding: '4px 10px', fontSize: '0.82rem', width: 'auto' }}
+                  value={selectedAuditDate}
+                  onChange={(e) => setSelectedAuditDate(e.target.value)}
+                  title="Choose any date to audit staff activity"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Summary Highlights for Selected Date */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '12px',
+              marginBottom: '18px'
+            }}
+          >
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '8px',
+                padding: '12px 14px'
+              }}
+            >
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Orders Recorded on {selectedAuditDate === todayStr ? 'Today' : selectedAuditDate}
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '2px' }}>
+                {ordersOnDate.length}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--gold-light)' }}>
+                Advance Received: {formatMoney(ordersOnDate.reduce((s, o) => s + (Number(o.depositPaid) || 0), 0))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '8px',
+                padding: '12px 14px'
+              }}
+            >
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                New Customers Registered
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>
+                {clientsOnDate.length}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                {clientsOnDate.length === 0 ? 'No new clients registered' : `${clientsOnDate.length} customer(s)`}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '8px',
+                padding: '12px 14px'
+              }}
+            >
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Active Recorders on this Day
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
+                {staffActivityList.length}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                {staffActivityList.length === 0
+                  ? 'No entries recorded'
+                  : staffActivityList.map((s) => s.name).join(', ')}
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown by Staff Member */}
+          {staffActivityList.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.76rem', color: 'var(--gold-light)', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Staff Member Activity:
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {staffActivityList.map((s) => (
+                  <div
+                    key={s.name}
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div
+                      className={`staff-badge ${
+                        s.role === 'assistant' ? 'staff-badge-assistant' : 'staff-badge-owner'
+                      }`}
+                    >
+                      <User size={13} />
+                      <span>{s.name}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#fff' }}>
+                      <span style={{ color: 'var(--gold-light)', fontWeight: 700 }}>{s.orders.length}</span> order(s) •{' '}
+                      <span style={{ color: '#60a5fa', fontWeight: 700 }}>{s.clients.length}</span> customer(s)
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Detailed Entries Timeline for the Day */}
+          {dailyEntries.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '24px 16px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '8px',
+                color: 'var(--text-muted)',
+                fontSize: '0.84rem'
+              }}
+            >
+              No orders or customers were recorded on {selectedAuditDate === todayStr ? 'today' : selectedAuditDate}.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {dailyEntries.map((entry) => (
+                <div
+                  key={`${entry.type}-${entry.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-subtle)',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '6px',
+                        background:
+                          entry.type === 'order'
+                            ? 'rgba(197, 160, 89, 0.15)'
+                            : 'rgba(59, 130, 246, 0.15)',
+                        color: entry.type === 'order' ? 'var(--gold-primary)' : '#60a5fa'
+                      }}
+                    >
+                      {entry.type === 'order' ? <Armchair size={15} /> : <Users size={15} />}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem' }}>
+                        {entry.title}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                        {entry.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div
+                        className={`staff-badge ${
+                          entry.recordedByRole === 'assistant'
+                            ? 'staff-badge-assistant'
+                            : 'staff-badge-owner'
+                        }`}
+                      >
+                        <User size={12} />
+                        <span>{entry.recordedBy}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        🕒 {entry.time}
+                      </div>
+                    </div>
+
+                    {entry.type === 'order' ? (
+                      <button
+                        className="btn btn-outline-gold btn-sm"
+                        onClick={() => setModalConfig({ type: 'order_receipt', data: entry.data })}
+                        title="View & Print Official Order Receipt"
+                      >
+                        <Receipt size={12} />
+                        <span>Receipt</span>
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setActiveTab('clients')}
+                        title="View Customer List"
+                      >
+                        <Eye size={12} />
+                        <span>View</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -313,7 +313,25 @@ export const AppProvider = ({ children }) => {
   // CRUD helpers
   const addItem = async (collectionName, data) => {
     try {
-      const record = await createRecord(collectionName, data);
+      const now = new Date();
+      const localDateStr = now.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+      const localTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const creatorName = currentUser?.name || currentUser?.username || 'DOFU Management';
+      const creatorUsername = currentUser?.username || 'DOFU';
+      const creatorRole = currentUser?.role || 'owner';
+
+      const enrichedData = {
+        recordedBy: data.recordedBy || creatorName,
+        recordedByUsername: data.recordedByUsername || creatorUsername,
+        recordedByRole: data.recordedByRole || creatorRole,
+        recordedDate: data.recordedDate || localDateStr,
+        recordedTime: data.recordedTime || localTimeStr,
+        recordedAt: data.recordedAt || now.toISOString(),
+        ...data
+      };
+
+      const record = await createRecord(collectionName, enrichedData);
       showToast(`Added to ${collectionName} successfully!`);
       return record;
     } catch (err) {
@@ -324,7 +342,15 @@ export const AppProvider = ({ children }) => {
 
   const editItem = async (collectionName, id, updates) => {
     try {
-      const record = await updateRecord(collectionName, id, updates);
+      const now = new Date();
+      const modifierName = currentUser?.name || currentUser?.username || 'DOFU Management';
+      const enrichedUpdates = {
+        ...updates,
+        lastModifiedBy: modifierName,
+        lastModifiedByRole: currentUser?.role || 'owner',
+        lastModifiedAt: now.toISOString()
+      };
+      const record = await updateRecord(collectionName, id, enrichedUpdates);
       showToast(`Updated ${collectionName} successfully!`);
       return record;
     } catch (err) {

@@ -404,6 +404,15 @@ export const OrderReceiptModal = () => {
             <div>
               <strong>Order Date:</strong> {order.orderDate || formattedDate}
             </div>
+            <div style={{ marginTop: '2px' }}>
+              <strong>Recorded By:</strong>{' '}
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                {order.recordedBy || 'DOFU Management'}
+              </span>{' '}
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                ({order.recordedByRole === 'assistant' ? 'Assistant' : 'Owner/Admin'})
+              </span>
+            </div>
           </div>
 
           <div>
@@ -623,7 +632,7 @@ export const OrderReceiptModal = () => {
             <div style={{ borderTop: '1px solid #94a3b8', paddingTop: '4px' }}>
               <strong>DOFU Furniture Mwanza Authorized Signature:</strong>
               <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '2px' }}>
-                Official Workshop Stamp & Sign
+                Issued by: {order.recordedBy || 'DOFU Management'} • {order.recordedDate || order.orderDate || formattedDate}
               </div>
             </div>
           </div>

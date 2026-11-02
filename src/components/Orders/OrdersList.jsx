@@ -16,24 +16,58 @@ import {
   AlertCircle,
   Receipt,
   RotateCcw,
+  User,
+  Calendar,
   X
 } from 'lucide-react';
 
 export const OrdersList = () => {
-  const { orders, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
+  const { orders, staff, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [staffFilter, setStaffFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customDate, setCustomDate] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
+
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toLocaleDateString('en-CA');
+
+  // Collect all unique recorders from orders as well as registered staff
+  const staffOptions = Array.from(
+    new Set([
+      'DOFU Management',
+      ...(staff || []).map((s) => s.name || s.username).filter(Boolean),
+      ...orders.map((o) => o.recordedBy).filter(Boolean)
+    ])
+  );
 
   const filtered = orders.filter((o) => {
     const matchSearch =
       (o.orderNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (o.itemName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (o.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (o.woodType || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (o.woodType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.recordedBy || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
-    return matchSearch && matchStatus;
+
+    const orderRecorder = o.recordedBy || 'DOFU Management';
+    const matchStaff = staffFilter === 'all' || orderRecorder.toLowerCase() === staffFilter.toLowerCase();
+
+    const orderDateOnly = o.recordedDate || o.orderDate || (o.createdAt ? o.createdAt.split('T')[0] : '');
+    let matchDate = true;
+    if (dateFilter === 'today') {
+      matchDate = orderDateOnly === todayStr;
+    } else if (dateFilter === 'yesterday') {
+      matchDate = orderDateOnly === yesterdayStr;
+    } else if (dateFilter === 'custom' && customDate) {
+      matchDate = orderDateOnly === customDate;
+    }
+
+    return matchSearch && matchStatus && matchStaff && matchDate;
   });
 
   const handleQuickStatusChange = async (id, newStatus) => {
@@ -128,6 +162,44 @@ export const OrdersList = () => {
             <option value="ready">Ready for Dispatch</option>
             <option value="delivered">Delivered & Completed</option>
           </select>
+
+          <select
+            className="form-select"
+            style={{ width: 'auto' }}
+            value={staffFilter}
+            onChange={(e) => setStaffFilter(e.target.value)}
+            title="Filter by who recorded the order"
+          >
+            <option value="all">👤 All Staff / Recorders</option>
+            {staffOptions.map((st) => (
+              <option key={st} value={st}>
+                👤 {st}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="form-select"
+            style={{ width: 'auto' }}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            title="Filter orders by date recorded"
+          >
+            <option value="all">📅 All Dates</option>
+            <option value="today">📅 Recorded Today</option>
+            <option value="yesterday">📅 Recorded Yesterday</option>
+            <option value="custom">📅 Specific Date...</option>
+          </select>
+
+          {dateFilter === 'custom' && (
+            <input
+              type="date"
+              className="form-input"
+              style={{ width: 'auto', padding: '6px 10px' }}
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+            />
+          )}
         </div>
 
         <button
@@ -158,6 +230,7 @@ export const OrdersList = () => {
               <tr>
                 <th>Order # & Item Details</th>
                 <th>Client</th>
+                <th>Recorded By & Date</th>
                 <th>Category & Color</th>
                 <th>Production Stage</th>
                 <th>Pricing & Advance</th>
@@ -223,6 +296,37 @@ export const OrdersList = () => {
                       <div style={{ fontWeight: 600, color: '#fff' }}>{order.clientName}</div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                         {order.clientPhone || 'No phone'}
+                      </div>
+                    </td>
+
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div
+                          className={`staff-badge ${
+                            order.recordedByRole === 'assistant' ? 'staff-badge-assistant' : 'staff-badge-owner'
+                          }`}
+                          title={`Recorded by: ${order.recordedBy || 'DOFU Management'} (${order.recordedByRole || 'owner'})`}
+                        >
+                          <User size={12} />
+                          <span>{order.recordedBy || 'DOFU Management'}</span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.73rem',
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Calendar size={11} color="var(--gold-primary)" />
+                          <span>
+                            {(order.recordedDate || order.orderDate) === todayStr
+                              ? 'Today'
+                              : (order.recordedDate || order.orderDate || 'Earlier')}
+                            {order.recordedTime ? ` • ${order.recordedTime}` : ''}
+                          </span>
+                        </div>
                       </div>
                     </td>
 
