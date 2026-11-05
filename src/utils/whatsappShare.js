@@ -145,7 +145,7 @@ export const shareInvoicePdfViaWhatsApp = async (invoice, elementId = 'printable
     `💰 *Total Amount:* ${formatMoney(totalAmount)}`,
     amountPaid > 0 ? `💵 *Advance Paid:* ${formatMoney(amountPaid)}` : '',
     balance > 0 ? `⏳ *Balance Due:* ${formatMoney(balance)}` : `✅ *Status:* Paid in Full`,
-    `\nThank you for choosing DOFU! Please contact us at +255 769 456 793 for any questions.`
+    `\nThank you for choosing DOFU! Please contact us at +255 769 456 792 for any questions.`
   ]
     .filter(Boolean)
     .join('\n');
@@ -154,7 +154,7 @@ export const shareInvoicePdfViaWhatsApp = async (invoice, elementId = 'printable
     let destPhone = targetPhone;
     if (!destPhone) {
       const input = window.prompt(
-        'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+        'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
         invoice.clientPhone || '255'
       );
       if (input) destPhone = normalizePhoneForWhatsApp(input);
@@ -174,7 +174,7 @@ export const shareInvoicePdfViaWhatsApp = async (invoice, elementId = 'printable
   let destPhone = targetPhone;
   if (!destPhone) {
     const input = window.prompt(
-      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
       invoice.clientPhone || '255'
     );
     if (input) destPhone = normalizePhoneForWhatsApp(input);
@@ -249,7 +249,7 @@ export const shareOrderReceiptPdfViaWhatsApp = async (order, elementId = 'printa
     `💰 *Total Agreed Amount:* ${formatMoney(totalPrice)}`,
     `💵 *Advance Deposit Paid:* ${formatMoney(depositPaid)}`,
     balance > 0 ? `⏳ *Balance Due on Delivery:* ${formatMoney(balance)}` : `✅ *Payment:* Paid in Full`,
-    `\nThank you for choosing DOFU FURNITURE MWANZA! Workshop Contact: +255 769 456 793`
+    `\nThank you for choosing DOFU FURNITURE MWANZA! Workshop Contact: +255 769 456 792`
   ]
     .filter(Boolean)
     .join('\n');
@@ -258,7 +258,7 @@ export const shareOrderReceiptPdfViaWhatsApp = async (order, elementId = 'printa
     let destPhone = targetPhone;
     if (!destPhone) {
       const input = window.prompt(
-        'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+        'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
         order.clientPhone || '255'
       );
       if (input) destPhone = normalizePhoneForWhatsApp(input);
@@ -278,7 +278,7 @@ export const shareOrderReceiptPdfViaWhatsApp = async (order, elementId = 'printa
   let destPhone = targetPhone;
   if (!destPhone) {
     const input = window.prompt(
-      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
       order.clientPhone || '255'
     );
     if (input) destPhone = normalizePhoneForWhatsApp(input);
@@ -301,7 +301,7 @@ export const shareOrderReceiptViaWhatsApp = (order, formatMoneyFn) => {
 
   if (!targetPhone) {
     const input = window.prompt(
-      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
       order.clientPhone || '255'
     );
     if (!input) return;
@@ -321,7 +321,7 @@ export const shareOrderReceiptViaWhatsApp = (order, formatMoneyFn) => {
     `*DOFU FURNITURE MWANZA*`,
     `_Custom Bespoke Furniture & Luxury Interior Architecture_`,
     `📍 Bugarika Sokon, Bugando, Mwanza`,
-    `📞 +255 769 456 793 | ✉️ dofufurnituremwanza@gmail.com`,
+    `📞 +255 769 456 792 | ✉️ dofufurnituremwanza@gmail.com`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━`,
     `*OFFICIAL ORDER & PAYMENT RECEIPT*`,
     `📋 *Order Ref:* #${order.orderNumber || 'ORD'}`,
@@ -364,7 +364,7 @@ export const shareInvoiceViaWhatsApp = (invoice, formatMoneyFn) => {
 
   if (!targetPhone) {
     const input = window.prompt(
-      'Enter customer WhatsApp phone number (e.g. 0769456793 or 255769456793):',
+      'Enter customer WhatsApp phone number (e.g. 0769456792 or 255769456792):',
       invoice.clientPhone || '255'
     );
     if (!input) return;
@@ -394,7 +394,7 @@ export const shareInvoiceViaWhatsApp = (invoice, formatMoneyFn) => {
     `*DOFU FURNITURE MWANZA*`,
     `_Custom Bespoke Furniture & Luxury Interior Architecture_`,
     `📍 Bugarika Sokon, Bugando, Mwanza`,
-    `📞 +255 769 456 793 | ✉️ dofufurnituremwanza@gmail.com`,
+    `📞 +255 769 456 792 | ✉️ dofufurnituremwanza@gmail.com`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━`,
     `*${docTitle}*`,
     `📄 *Document #:* ${invoice.invoiceNumber || 'INV'}`,
@@ -421,7 +421,7 @@ export const shareInvoiceViaWhatsApp = (invoice, formatMoneyFn) => {
     `━━━━━━━━━━━━━━━━━━━━━━━━━`,
     invoice.paymentMethod ? `💳 *Payment Method:* ${invoice.paymentMethod}` : '',
     invoice.notes ? `📝 *Notes:* ${invoice.notes}` : '',
-    `Official commercial document issued by *DOFU FURNITURE MWANZA*. For inquiries, call or WhatsApp +255 769 456 793.`
+    `Official commercial document issued by *DOFU FURNITURE MWANZA*. For inquiries, call or WhatsApp +255 769 456 792.`
   ].filter(Boolean);
 
   const messageText = lines.join('\n');

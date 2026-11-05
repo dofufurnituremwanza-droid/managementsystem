@@ -515,7 +515,7 @@ export const OrderReceiptModal = () => {
               </div>
               <div style={{ fontSize: '0.76rem', color: '#4b5563', lineHeight: 1.4 }}>
                 <div>📍 <strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
-                <div>📞 <strong>PHONE:</strong> +255769456793 | ✉️ <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
+                <div>📞 <strong>PHONE:</strong> {settings?.phone || '+255769456792'} | ✉️ <strong>EMAIL:</strong> {settings?.email || 'dofufurnituremwanza@gmail.com'}</div>
               </div>
             </div>
           </div>

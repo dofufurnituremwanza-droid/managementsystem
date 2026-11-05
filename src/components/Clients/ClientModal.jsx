@@ -75,7 +75,7 @@ export const ClientModal = () => {
             type="tel"
             required
             className="form-input"
-            placeholder="e.g. +255 769 456 793"
+            placeholder="e.g. +255 769 456 792"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           />

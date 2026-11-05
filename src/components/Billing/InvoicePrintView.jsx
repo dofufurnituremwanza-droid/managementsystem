@@ -346,7 +346,7 @@ export const InvoicePrintView = () => {
               </p>
               <div style={{ fontSize: '0.76rem', color: '#4b5563', lineHeight: 1.45, marginTop: '4px' }}>
                 <div>📍 <strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
-                <div>📞 <strong>PHONE:</strong> +255769456793 | ✉️ <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
+                <div>📞 <strong>PHONE:</strong> {settings?.phone || '+255769456792'} | ✉️ <strong>EMAIL:</strong> {settings?.email || 'dofufurnituremwanza@gmail.com'}</div>
               </div>
             </div>
           </div>
@@ -682,7 +682,7 @@ export const InvoicePrintView = () => {
                 color: '#475569'
               }}
             >
-              {settings.paymentDetails || 'M-Pesa / Tigo Pesa: +255 769 456 793\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA'}
+              {settings.paymentDetails || 'M-Pesa / Tigo Pesa: +255 769 456 792\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA'}
             </div>
           </div>
 

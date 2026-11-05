@@ -79,7 +79,7 @@ export const SaleReceiptModal = () => {
           </div>
           <div style={{ fontSize: '0.78rem', color: '#374151', lineHeight: 1.45 }}>
             <div><strong>LOCATION:</strong> BUGARIKA SOKON, BUGANDO, MWANZA</div>
-            <div><strong>PHONE:</strong> +255769456793 | <strong>EMAIL:</strong> dofufurnituremwanza@gmail.com</div>
+            <div><strong>PHONE:</strong> {settings?.phone || '+255769456792'} | <strong>EMAIL:</strong> {settings?.email || 'dofufurnituremwanza@gmail.com'}</div>
           </div>
         </div>
 
@@ -249,7 +249,7 @@ export const SaleReceiptModal = () => {
             Thank you for buying from DOFU FURNITURE MWANZA!
           </p>
           <p style={{ margin: 0 }}>
-            LOCATION: BUGARIKA SOKON, BUGANDO, MWANZA | PHONE: +255769456793
+            LOCATION: BUGARIKA SOKON, BUGANDO, MWANZA | PHONE: {settings?.phone || '+255769456792'}
           </p>
         </div>
       </div>

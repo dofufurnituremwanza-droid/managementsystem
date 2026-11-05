@@ -22,12 +22,12 @@ const DEFAULT_SETTINGS = {
   businessName: 'DOFU FURNITURE MWANZA',
   tagline: 'Custom Bespoke Furniture & Luxury Interior Architecture',
   email: 'dofufurnituremwanza@gmail.com',
-  phone: '+255769456793',
+  phone: '+255769456792',
   address: 'BUGARIKA SOKON, BUGANDO, MWANZA',
   currency: 'TZS',
   currencySymbol: 'TSh',
   taxRate: 0,
-  paymentDetails: 'M-Pesa / Tigo Pesa: +255 769 456 793\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA',
+  paymentDetails: 'M-Pesa / Tigo Pesa: +255 769 456 792\nBank: CRDB Bank / NMB Bank\nAccount Name: DOFU FURNITURE MWANZA',
   terms: '1. 50% commitment deposit required before production begins.\n2. Balance upon final inspection & delivery.\n3. Custom furniture crafted with premium Tanzanian hardwoods.',
   ownerPassword: 'DOFU5060'
 };
@@ -71,14 +71,32 @@ export const AppProvider = ({ children }) => {
       const saved = localStorage.getItem('dofu_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
+        const resolvedPhone =
+          parsed.phone &&
+          parsed.phone !== '+255 700 000 000' &&
+          parsed.phone !== '+255769456793' &&
+          parsed.phone !== '+255 769 456 793'
+            ? parsed.phone
+            : '+255769456792';
+
+        const resolvedPayment =
+          parsed.paymentDetails && parsed.paymentDetails.includes('769 456 793')
+            ? parsed.paymentDetails.replace(/769\s*456\s*793/g, '769 456 792')
+            : parsed.paymentDetails || DEFAULT_SETTINGS.paymentDetails;
+
+        const merged = {
           ...DEFAULT_SETTINGS,
           ...parsed,
-          phone: parsed.phone && parsed.phone !== '+255 700 000 000' ? parsed.phone : '+255769456793',
+          phone: resolvedPhone,
+          paymentDetails: resolvedPayment,
           address: parsed.address && !parsed.address.includes('Plot 42') ? parsed.address : 'BUGARIKA SOKON, BUGANDO, MWANZA',
           businessName: parsed.businessName && !parsed.businessName.includes('Plot 42') ? parsed.businessName : 'DOFU FURNITURE MWANZA',
           email: parsed.email && !parsed.email.includes('dofudesigns') ? parsed.email : 'dofufurnituremwanza@gmail.com'
         };
+        try {
+          localStorage.setItem('dofu_settings', JSON.stringify(merged));
+        } catch (e) {}
+        return merged;
       }
       return DEFAULT_SETTINGS;
     } catch {

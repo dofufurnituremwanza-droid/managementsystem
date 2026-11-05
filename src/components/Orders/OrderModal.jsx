@@ -370,7 +370,7 @@ export const OrderModal = () => {
             type="tel"
             required
             className="form-input"
-            placeholder="e.g. +255 769 456 793"
+            placeholder="e.g. +255 769 456 792"
             value={formData.clientPhone}
             onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
           />
