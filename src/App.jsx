@@ -26,6 +26,7 @@ import { InvoicePrintView } from './components/Billing/InvoicePrintView';
 import { ExpenseModal } from './components/Expenses/ExpenseModal';
 import { FirebaseConfigModal } from './components/Settings/FirebaseConfigModal';
 import { SaleReceiptModal } from './components/Inventory/SaleReceiptModal';
+import { InstallAppModal } from './components/Common/InstallAppModal';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
 
 const MainLayout = () => {
@@ -61,8 +62,6 @@ const MainLayout = () => {
       {isOwner && <ExpenseModal />}
       {isOwner && <FirebaseConfigModal />}
       <SaleReceiptModal />
-
-      <Toast />
     </div>
   );
 };
@@ -70,16 +69,13 @@ const MainLayout = () => {
 const AppContent = () => {
   const { isAuthenticated } = useApp();
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <LoginView />
-        <Toast />
-      </>
-    );
-  }
-
-  return <MainLayout />;
+  return (
+    <>
+      {!isAuthenticated ? <LoginView /> : <MainLayout />}
+      <InstallAppModal />
+      <Toast />
+    </>
+  );
 };
 
 export default function App() {

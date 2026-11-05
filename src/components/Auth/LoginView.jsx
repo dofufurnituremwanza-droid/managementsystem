@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle, Smartphone, Download } from 'lucide-react';
 
 export const LoginView = () => {
-  const { login } = useApp();
+  const { login, isStandalone, triggerInstallApp } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -210,6 +210,28 @@ export const LoginView = () => {
             <ArrowRight size={18} />
           </button>
         </form>
+
+        {/* Option to Add / Install DOFU as Native App on Device */}
+        {!isStandalone && (
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-outline-gold btn-sm"
+              onClick={triggerInstallApp}
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                borderStyle: 'dashed'
+              }}
+              title="Add DOFU System as an app to your phone or computer"
+            >
+              <Smartphone size={16} />
+              <span>Install App on this Device</span>
+            </button>
+          </div>
+        )}
 
         {/* Footer info badge */}
         <div

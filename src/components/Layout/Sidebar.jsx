@@ -14,7 +14,10 @@ import {
   LogOut,
   Sun,
   Moon,
-  X
+  X,
+  Smartphone,
+  Download,
+  CheckCircle2
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -33,7 +36,9 @@ export const Sidebar = () => {
     orders,
     projects,
     invoices,
-    notes
+    notes,
+    isStandalone,
+    triggerInstallApp
   } = useApp();
 
   // Active counts for badges
@@ -136,6 +141,51 @@ export const Sidebar = () => {
             );
           })}
         </nav>
+
+        {/* Add App to Device (PWA) Option */}
+        <div style={{ padding: '0 12px 10px' }}>
+          {!isStandalone ? (
+            <button
+              type="button"
+              className="pwa-install-sidebar-btn"
+              onClick={() => {
+                triggerInstallApp();
+                setMobileMenuOpen(false);
+              }}
+              title="Add DOFU System to your device home screen"
+            >
+              <div className="pwa-install-icon-wrap">
+                <Smartphone size={16} />
+              </div>
+              <div className="pwa-install-sidebar-text" style={{ textAlign: 'left' }}>
+                <strong style={{ display: 'block', fontSize: '0.82rem', color: 'var(--gold-light)' }}>
+                  Install App
+                </strong>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Add to Home Screen
+                </span>
+              </div>
+              <Download size={14} style={{ marginLeft: 'auto', color: 'var(--gold-primary)' }} />
+            </button>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+                fontSize: '0.72rem',
+                color: '#10b981'
+              }}
+            >
+              <CheckCircle2 size={13} />
+              <span>Running as Installed App</span>
+            </div>
+          )}
+        </div>
 
         {/* Clean System Status & User Logout Footer */}
         <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

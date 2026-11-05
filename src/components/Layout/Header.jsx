@@ -11,7 +11,8 @@ import {
   Receipt,
   Database,
   Sun,
-  Moon
+  Moon,
+  Smartphone
 } from 'lucide-react';
 
 const TAB_META = {
@@ -35,7 +36,9 @@ export const Header = () => {
     isOwner,
     isAssistant,
     theme,
-    toggleTheme
+    toggleTheme,
+    isStandalone,
+    triggerInstallApp
   } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -72,6 +75,19 @@ export const Header = () => {
       </div>
 
       <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Install as App on Device Button (PWA) */}
+        {!isStandalone && (
+          <button
+            type="button"
+            className="btn btn-outline-gold btn-sm pwa-install-header-btn"
+            onClick={triggerInstallApp}
+            title="Install DOFU System as an app on your phone or PC"
+          >
+            <Smartphone size={14} />
+            <span className="pwa-install-text">Install App</span>
+          </button>
+        )}
+
         {/* Dark / Light Mode Quick Toggle */}
         <button
           type="button"

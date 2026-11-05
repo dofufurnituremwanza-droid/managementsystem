@@ -22,7 +22,9 @@ import {
   Key,
   Sun,
   Moon,
-  Check
+  Check,
+  Smartphone,
+  Laptop
 } from 'lucide-react';
 import { FIRESTORE_RULES } from '../../firebase/securityRules';
 
@@ -44,7 +46,10 @@ export const SettingsView = () => {
     addStaff,
     removeStaff,
     theme,
-    setTheme
+    setTheme,
+    triggerInstallApp,
+    isStandalone,
+    isIOS
   } = useApp();
 
   const [formData, setFormData] = useState({ ...settings });
@@ -704,6 +709,102 @@ export const SettingsView = () => {
                 <li>System settings, cloud database credentials & staff logins</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* App Installation & Mobile Devices (PWA) */}
+      <div className="card" style={{ border: '1px solid rgba(197, 160, 89, 0.35)', background: 'linear-gradient(135deg, rgba(197, 160, 89, 0.05) 0%, rgba(22, 26, 34, 0.8) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', maxWidth: '650px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'rgba(197, 160, 89, 0.15)',
+              border: '1px solid rgba(197, 160, 89, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--gold-light)',
+              flexShrink: 0
+            }}>
+              <Smartphone size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h4 style={{ color: 'var(--text-main)', fontSize: '1.05rem', margin: 0 }}>
+                  DOFU System Device Installation (PWA)
+                </h4>
+                {isStandalone ? (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    color: '#10b981',
+                    fontSize: '0.72rem',
+                    fontWeight: 600
+                  }}>
+                    <CheckCircle2 size={12} /> Installed App
+                  </span>
+                ) : (
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(197, 160, 89, 0.15)',
+                    border: '1px solid rgba(197, 160, 89, 0.3)',
+                    color: 'var(--gold-primary)',
+                    fontSize: '0.72rem',
+                    fontWeight: 600
+                  }}>
+                    Available for Install
+                  </span>
+                )}
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '6px', marginBottom: 0 }}>
+                Install DOFU Management System onto any iPhone, iPad, Android phone, tablet, or Windows/Mac laptop. Runs in full-screen standalone mode with offline cache and instant home-screen launching.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={triggerInstallApp}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Smartphone size={16} />
+              <span>{isStandalone ? 'View Device Instructions' : 'Install App on this Device'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: '16px',
+          paddingTop: '14px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px',
+          fontSize: '0.76rem',
+          color: 'var(--text-secondary)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ color: 'var(--gold-primary)', fontWeight: 700 }}>📱 iPhone / Safari:</span>
+            <span>Tap the Safari <strong>Share</strong> button, then select <strong>Add to Home Screen</strong>.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ color: 'var(--gold-primary)', fontWeight: 700 }}>🤖 Android / Chrome:</span>
+            <span>Tap <strong>Install App</strong> above or select <strong>Add to Home screen</strong> from the menu.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            <span style={{ color: 'var(--gold-primary)', fontWeight: 700 }}>💻 PC / Laptop:</span>
+            <span>Click the install icon in your browser address bar or click the install button above.</span>
           </div>
         </div>
       </div>

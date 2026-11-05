@@ -149,6 +149,73 @@ export const AppProvider = ({ children }) => {
   const isOwner = currentUser?.role === 'owner' || (!currentUser?.role && currentUser?.username === 'DOFU');
   const isAssistant = currentUser?.role === 'assistant';
 
+  // PWA Device Installation State
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+  });
+  const [isIOS, setIsIOS] = useState(() => {
+    if (typeof navigator === 'undefined') return false;
+    return (
+      /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+  });
+  const [installModalOpen, setInstallModalOpen] = useState(false);
+
+  // Capture beforeinstallprompt event for Android, Windows, Chrome, Edge
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setIsStandalone(true);
+      showToast('DOFU System installed as an app on your device!', 'success');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  // Trigger PWA Installation
+  const triggerInstallApp = async () => {
+    if (isStandalone) {
+      showToast('DOFU System is already running as an installed app!', 'info');
+      return;
+    }
+
+    if (deferredInstallPrompt) {
+      try {
+        await deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          showToast('Thank you! DOFU System is now installed on your device.', 'success');
+          setDeferredInstallPrompt(null);
+          setInstallModalOpen(false);
+        }
+      } catch (err) {
+        console.warn('Install prompt error:', err);
+        setInstallModalOpen(true);
+      }
+    } else {
+      // If iOS or if browser hasn't fired beforeinstallprompt yet, open guide modal
+      setInstallModalOpen(true);
+    }
+  };
+
   // Guard: if an assistant is on a restricted tab, redirect them immediately to orders
   useEffect(() => {
     if (isAssistant) {
@@ -529,7 +596,14 @@ export const AppProvider = ({ children }) => {
         // Theme (Dark / Light)
         theme,
         setTheme,
-        toggleTheme
+        toggleTheme,
+        // PWA App Installation
+        deferredInstallPrompt,
+        isStandalone,
+        isIOS,
+        installModalOpen,
+        setInstallModalOpen,
+        triggerInstallApp
       }}
     >
       {children}
