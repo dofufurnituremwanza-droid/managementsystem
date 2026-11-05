@@ -549,7 +549,7 @@ export const InvoiceModal = () => {
 
         {/* Live Calculation Card */}
         <div
-          className="form-group form-full"
+          className="form-group form-full invoice-calc-card"
           style={{
             background: 'rgba(15, 18, 25, 0.7)',
             border: '1px solid var(--border-gold-card)',
@@ -557,7 +557,9 @@ export const InvoiceModal = () => {
             padding: '16px 20px',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
           }}
         >
           <div>
@@ -593,7 +595,7 @@ export const InvoiceModal = () => {
         </div>
 
         <div
-          className="form-full"
+          className="form-full modal-form-actions"
           style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}
         >
           <button

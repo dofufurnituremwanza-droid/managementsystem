@@ -177,7 +177,7 @@ export const ExpenseModal = () => {
         </div>
 
         <div
-          className="form-full"
+          className="form-full modal-form-actions"
           style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}
         >
           <button

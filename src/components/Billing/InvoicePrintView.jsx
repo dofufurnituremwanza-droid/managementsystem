@@ -584,7 +584,7 @@ export const InvoicePrintView = () => {
             marginBottom: '24px'
           }}
         >
-          <div style={{ width: '320px', color: '#0f172a', fontSize: '0.86rem' }}>
+          <div style={{ width: '100%', maxWidth: '340px', color: '#0f172a', fontSize: '0.86rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
               <span style={{ color: '#64748b' }}>Subtotal:</span>
               <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(resolvedSubtotal)}</strong>

@@ -64,6 +64,12 @@
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+
+  /* iOS Safe Area Insets */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* Reset & Base */
@@ -1017,6 +1023,25 @@ body {
   }
 }
 
+/* Sidebar Backdrop for Mobile Drawer */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 9, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1045;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal Form Actions for recording forms */
+.modal-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 /* --------------------------------------------------------------------------
    Breakpoints: Drawer Sidebar & Collapsible Layout (<= 992px)
    -------------------------------------------------------------------------- */
@@ -1024,6 +1049,14 @@ body {
   .mobile-menu-btn {
     display: inline-flex !important;
   }
+
+  .top-header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    min-height: calc(58px + env(safe-area-inset-top, 0px)) !important;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
@@ -1031,15 +1064,42 @@ body {
     bottom: 0;
     height: 100vh;
     height: 100dvh;
-    width: min(300px, 86vw);
+    max-height: 100dvh;
+    width: min(320px, 86vw);
     z-index: 1050;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
+    box-sizing: border-box;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .sidebar.open {
     transform: translateX(0);
   }
+  .sidebar-header {
+    padding: 16px 18px 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .sidebar-footer {
+    flex-shrink: 0;
+    padding: 12px 14px;
+    margin-bottom: 4px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -1053,8 +1113,28 @@ body {
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   /* Prevent iOS Safari auto-zoom on inputs */
-  .form-input, .form-select, .form-textarea {
+  input, select, textarea,
+  .form-input, .form-select, .form-textarea,
+  .search-box input {
     font-size: 16px !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .form-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* Notebook iPhone-style Single-Pane View */
@@ -1107,10 +1187,17 @@ body {
     overflow-x: hidden;
   }
 
+  .main-viewport {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .top-header {
     height: auto !important;
-    min-height: 56px !important;
-    padding: 8px 12px !important;
+    min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    padding-bottom: 8px !important;
+    padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
     gap: 8px !important;
   }
 
@@ -1207,22 +1294,26 @@ body {
   .modal-overlay {
     padding: 0 !important;
     align-items: flex-end !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
   }
 
   .modal-dialog {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 94vh !important;
-    max-height: 94dvh !important;
-    border-radius: 18px 18px 0 0 !important;
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 8px) !important;
+    border-radius: 20px 20px 0 0 !important;
     margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding-bottom: env(safe-area-inset-bottom, 12px) !important;
   }
 
   .modal-header {
     padding: 14px 16px !important;
     flex-shrink: 0 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
   }
 
   .modal-header h3 {
@@ -1231,16 +1322,38 @@ body {
   }
 
   .modal-body {
-    padding: 14px 12px !important;
+    padding: 14px 14px 28px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     flex: 1 1 auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal-form-actions {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-top: 20px !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+
+  .modal-form-actions .btn {
+    width: 100% !important;
+    min-height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--radius-md) !important;
   }
 
   .modal-footer {
-    padding: 10px 14px !important;
+    padding: 12px 14px calc(env(safe-area-inset-bottom, 12px) + 8px) !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: column-reverse !important;
     gap: 8px !important;
     flex-shrink: 0 !important;
     background: var(--bg-card) !important;
@@ -1251,7 +1364,7 @@ body {
   .modal-footer .modal-footer-actions,
   .modal-footer div {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: column-reverse !important;
     width: 100% !important;
     gap: 8px !important;
   }
@@ -1259,11 +1372,11 @@ body {
   .modal-footer button,
   .modal-footer .btn {
     width: 100% !important;
-    min-height: 44px !important;
+    min-height: 46px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 0.86rem !important;
+    font-size: 0.9rem !important;
     white-space: nowrap !important;
   }
 
@@ -1277,28 +1390,44 @@ body {
     border-radius: 8px !important;
   }
 
-  .invoice-item-row > div:first-child {
+  .invoice-item-row > *:nth-child(1) {
     grid-column: 1 / -1 !important;
   }
 
-  .invoice-item-row input[placeholder="Qty"] {
+  .invoice-item-row > *:nth-child(2) {
     grid-column: 1 / 2 !important;
   }
 
-  .invoice-item-row input[placeholder="Unit Price"] {
+  .invoice-item-row > *:nth-child(3) {
     grid-column: 2 / 3 !important;
   }
 
-  .invoice-item-row > div:nth-child(4) {
+  .invoice-item-row > *:nth-child(4) {
     grid-column: 1 / 2 !important;
     text-align: center !important;
   }
 
-  .invoice-item-row button {
+  .invoice-item-row > *:nth-child(5) {
     grid-column: 2 / 3 !important;
     width: 100% !important;
     display: flex !important;
     justify-content: center !important;
+  }
+
+  .invoice-calc-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .invoice-calc-card > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding-bottom: 6px !important;
+  }
+  .invoice-calc-card > div:last-child {
+    border-bottom: none !important;
   }
 
   /* Print document preview inside modal on mobile */

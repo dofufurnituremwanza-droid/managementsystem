@@ -521,7 +521,7 @@ export const OrderModal = () => {
         </div>
 
         <div
-          className="form-full"
+          className="form-full modal-form-actions"
           style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}
         >
           <button

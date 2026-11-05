@@ -237,8 +237,7 @@ export const Sidebar = () => {
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="modal-overlay"
-          style={{ zIndex: 99 }}
+          className="sidebar-backdrop"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
