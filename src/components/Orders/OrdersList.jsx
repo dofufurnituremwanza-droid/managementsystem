@@ -24,7 +24,7 @@ import {
 import { shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 
 export const OrdersList = () => {
-  const { orders, invoices, staff, setModalConfig, removeItem, editItem, formatMoney, showToast } = useApp();
+  const { orders, invoices, staff, setModalConfig, removeItem, editItem, formatMoney, showToast, isOwner, isAssistant } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [staffFilter, setStaffFilter] = useState('all');
@@ -455,6 +455,33 @@ export const OrdersList = () => {
                         <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.92rem' }}>
                           {formatMoney(order.totalPrice)}
                         </div>
+
+                        {/* Owner Profit & Expenses Badge */}
+                        {(!isAssistant || isOwner) && Number(order.productionExpenses) > 0 && (
+                          <div
+                            style={{
+                              fontSize: '0.68rem',
+                              display: 'inline-flex',
+                              flexDirection: 'column',
+                              gap: '1px',
+                              background: 'rgba(16, 185, 129, 0.08)',
+                              border: '1px solid rgba(16, 185, 129, 0.22)',
+                              padding: '2px 5px',
+                              borderRadius: '4px',
+                              marginTop: '2px',
+                              width: 'fit-content'
+                            }}
+                            title={`Workshop Cost: ${formatMoney(order.productionExpenses)} | Net Profit: ${formatMoney(order.expectedProfit || Math.max(0, (Number(order.totalPrice) || 0) - Number(order.productionExpenses)))}`}
+                          >
+                            <div style={{ color: 'var(--text-muted)' }}>
+                              Cost: <span style={{ color: '#f87171', fontWeight: 600 }}>{formatMoney(order.productionExpenses)}</span>
+                            </div>
+                            <div style={{ color: '#34d399', fontWeight: 700 }}>
+                              Profit: +{formatMoney(order.expectedProfit !== undefined && order.expectedProfit !== '' ? order.expectedProfit : Math.max(0, (Number(order.totalPrice) || 0) - Number(order.productionExpenses)))}
+                              {order.profitMargin ? ` (${order.profitMargin}%)` : ''}
+                            </div>
+                          </div>
+                        )}
 
                         {balance <= 0 && Number(order.totalPrice) > 0 ? (
                           <>

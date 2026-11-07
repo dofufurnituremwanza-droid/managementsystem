@@ -63,3 +63,4 @@ export const getNextInvoiceNumber = (invoices = [], type = 'invoice') => {
   const nextNum = maxNum + 1;
   return `${prefix}-${String(nextNum).padStart(3, '0')}`;
 };
+

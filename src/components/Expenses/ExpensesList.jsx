@@ -138,6 +138,26 @@ export const ExpensesList = () => {
                     <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.92rem' }}>
                       {exp.title}
                     </div>
+                    {exp.orderNumber && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.72rem',
+                          color: '#38bdf8',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          marginTop: '3px',
+                          marginBottom: '2px'
+                        }}
+                      >
+                        ⚡ Order #{exp.orderNumber} Production Cost
+                      </div>
+                    )}
                     {exp.receiptRef && (
                       <div
                         style={{
