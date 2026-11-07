@@ -416,35 +416,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // One-time automatic reset to clear previous recorded demo data
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('dofu_system_clean_v2') !== 'done') {
-        clearAllCollections([
-          'clients',
-          'orders',
-          'projects',
-          'inventory',
-          'invoices',
-          'sales',
-          'expenses',
-          'notes'
-        ]);
-        setClients([]);
-        setOrders([]);
-        setProjects([]);
-        setInventory([]);
-        setInvoices([]);
-        setSales([]);
-        setExpenses([]);
-        setNotes([]);
-        localStorage.setItem('dofu_system_clean_v2', 'done');
-      }
-    } catch (e) {
-      console.warn('Auto clear check error', e);
-    }
-  }, []);
-
   // Clear all recorded data across the entire system
   const clearAllSystemData = async () => {
     setSyncing(true);
