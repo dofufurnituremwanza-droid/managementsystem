@@ -504,7 +504,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // CRUD helpers
-  const addItem = async (collectionName, data) => {
+  const addItem = async (collectionName, data, options = {}) => {
     try {
       const now = new Date();
       const localDateStr = now.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
@@ -529,12 +529,16 @@ export const AppProvider = ({ children }) => {
       const setter = getSetterFor(collectionName);
       if (setter && record) {
         setter((prev) => {
-          if (prev.some((item) => item.id === record.id)) return prev;
+          if (prev.some((item) => item.id === record.id)) {
+            return prev.map((item) => (item.id === record.id ? record : item));
+          }
           return [record, ...prev];
         });
       }
 
-      showToast(`Added to ${collectionName} successfully!`);
+      if (!options?.silent && !data?.silent) {
+        showToast(`Added to ${collectionName} successfully!`);
+      }
       return record;
     } catch (err) {
       showToast(`Failed to add record: ${err.message}`, 'error');
@@ -542,7 +546,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const editItem = async (collectionName, id, updates) => {
+  const editItem = async (collectionName, id, updates, options = {}) => {
     try {
       const now = new Date();
       const modifierName = currentUser?.name || currentUser?.username || 'DOFU Management';
@@ -561,7 +565,9 @@ export const AppProvider = ({ children }) => {
         );
       }
 
-      showToast(`Updated ${collectionName} successfully!`);
+      if (!options?.silent && !updates?.silent) {
+        showToast(`Updated ${collectionName} successfully!`);
+      }
       return record;
     } catch (err) {
       showToast(`Failed to update record: ${err.message}`, 'error');

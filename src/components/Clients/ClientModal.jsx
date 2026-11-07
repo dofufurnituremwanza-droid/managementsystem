@@ -7,6 +7,7 @@ export const ClientModal = () => {
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
 
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -27,6 +28,7 @@ export const ClientModal = () => {
         address: ''
       });
     }
+    setIsSaving(false);
   }, [modalConfig]);
 
   if (modalConfig.type !== 'new_client' && modalConfig.type !== 'edit_client') {
@@ -35,18 +37,25 @@ export const ClientModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.phone.trim()) return;
+    if (!formData.name.trim() || !formData.phone.trim() || isSaving) return;
 
-    if (isEditing) {
-      await editItem('clients', existing.id, formData);
-    } else {
-      await addItem('clients', {
-        ...formData,
-        totalOrders: 0,
-        totalSpent: 0
-      });
+    setIsSaving(true);
+    try {
+      if (isEditing) {
+        await editItem('clients', existing.id, formData);
+      } else {
+        await addItem('clients', {
+          ...formData,
+          totalOrders: 0,
+          totalSpent: 0
+        });
+      }
+      setModalConfig({ type: null });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
-    setModalConfig({ type: null });
   };
 
   return (
@@ -104,8 +113,8 @@ export const ClientModal = () => {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Save Changes' : 'Add Customer'}
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {isSaving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Customer')}
           </button>
         </div>
       </form>

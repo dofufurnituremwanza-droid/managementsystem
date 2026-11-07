@@ -65,9 +65,12 @@ export const subscribeToCollection = (collectionName, onData, onError) => {
             createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toISOString() : d.data().createdAt,
             updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate().toISOString() : d.data().updatedAt,
           }));
-          // Save a mirror locally for offline reliability
-          setLocalCollection(collectionName, items);
-          onData(items);
+          // Merge with any pending local records so in-flight saves are never wiped
+          const localItems = getLocalCollection(collectionName);
+          const unSyncedLocals = localItems.filter((loc) => !items.some((rem) => rem.id === loc.id));
+          const merged = [...unSyncedLocals, ...items];
+          setLocalCollection(collectionName, merged);
+          onData(merged);
         },
         (err) => {
           console.warn(`Firestore subscription fallback for ${collectionName}:`, err.message);
@@ -105,49 +108,85 @@ export const subscribeToCollection = (collectionName, onData, onError) => {
   };
 };
 
+// Helper to recursively sanitize payloads for Firestore (removes undefined & NaN)
+export const cleanForFirestore = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map((item) => cleanForFirestore(item));
+  }
+  const clean = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) continue;
+    if (typeof val === 'number' && isNaN(val)) {
+      clean[key] = 0;
+    } else if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+      clean[key] = cleanForFirestore(val);
+    } else {
+      clean[key] = val;
+    }
+  }
+  return clean;
+};
+
 /**
  * Add a new record to collection
+ * Instant Optimistic Execution:
+ * 1. Generates Firestore document ID synchronously in-memory (0ms network cost)
+ * 2. Saves to localStorage and emits local reactivity events immediately (<1ms)
+ * 3. Kicks off Firestore cloud synchronization in background without holding up the user interface
  */
 export const createRecord = async (collectionName, data) => {
   const timestamp = new Date().toISOString();
-  const newRecord = {
-    ...data,
-    createdAt: timestamp,
-    updatedAt: timestamp
-  };
+  let id = data.id;
+  let docRef = null;
 
   if (db) {
     try {
       const colRef = collection(db, collectionName);
-      const docRef = await addDoc(colRef, {
-        ...newRecord,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      const saved = { id: docRef.id, ...newRecord };
-      const items = getLocalCollection(collectionName);
-      setLocalCollection(collectionName, [saved, ...items.filter((i) => i.id !== saved.id)]);
-      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
-      return saved;
-    } catch (err) {
-      console.warn(`Firestore write failed for ${collectionName}, falling back to local:`, err);
+      docRef = id ? doc(db, collectionName, id) : doc(colRef);
+      id = docRef.id;
+    } catch (e) {
+      console.warn(`Error generating Firestore docRef for ${collectionName}:`, e);
     }
   }
 
-  // Local storage write
-  const id = `loc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const itemWithId = { id, ...newRecord };
-  const items = getLocalCollection(collectionName);
-  const updated = [itemWithId, ...items];
-  setLocalCollection(collectionName, updated);
+  if (!id) {
+    id = `loc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  }
 
-  // Dispatch custom event for same-tab reactivity
+  const newRecord = {
+    ...data,
+    id,
+    createdAt: data.createdAt || timestamp,
+    updatedAt: timestamp
+  };
+
+  // 1. Instant local persistence & reactivity (<1ms, ZERO DELAY)
+  const items = getLocalCollection(collectionName);
+  const updatedItems = [newRecord, ...items.filter((i) => i.id !== id)];
+  setLocalCollection(collectionName, updatedItems);
   window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
-  return itemWithId;
+
+  // 2. Background Firestore write (does NOT block UI or network wait)
+  if (db && docRef) {
+    const firestorePayload = cleanForFirestore({
+      ...newRecord,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    setDoc(docRef, firestorePayload, { merge: true }).catch((err) => {
+      console.warn(`Background Firestore write for ${collectionName}/${id}:`, err);
+    });
+  }
+
+  return newRecord;
 };
 
 /**
  * Update an existing record
+ * Instant Optimistic Execution:
+ * 1. Updates localStorage and dispatches change event immediately (0ms)
+ * 2. Syncs to Firestore in background without blocking caller UI
  */
 export const updateRecord = async (collectionName, id, updates) => {
   const timestamp = new Date().toISOString();
@@ -156,54 +195,61 @@ export const updateRecord = async (collectionName, id, updates) => {
     updatedAt: timestamp
   };
 
-  if (db) {
+  // 1. Instant local update & reactivity (<1ms, ZERO DELAY)
+  const items = getLocalCollection(collectionName);
+  let updatedRecord = { id, ...cleanUpdates };
+  const updatedItems = items.map((item) => {
+    if (item.id === id) {
+      updatedRecord = { ...item, ...cleanUpdates };
+      return updatedRecord;
+    }
+    return item;
+  });
+  setLocalCollection(collectionName, updatedItems);
+  window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
+
+  // 2. Background Firestore update (does NOT block caller UI)
+  if (db && !id.startsWith('loc_')) {
     try {
       const docRef = doc(db, collectionName, id);
-      await updateDoc(docRef, {
+      const firestorePayload = cleanForFirestore({
         ...cleanUpdates,
         updatedAt: serverTimestamp()
       });
-      const items = getLocalCollection(collectionName);
-      const updated = items.map((item) => (item.id === id ? { ...item, ...cleanUpdates } : item));
-      setLocalCollection(collectionName, updated);
-      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
-      return { id, ...cleanUpdates };
-    } catch (err) {
-      console.warn(`Firestore update failed for ${collectionName}/${id}:`, err);
+      setDoc(docRef, firestorePayload, { merge: true }).catch((err) => {
+        console.warn(`Background Firestore update for ${collectionName}/${id}:`, err);
+      });
+    } catch (e) {
+      console.warn(`Error updating Firestore doc ${collectionName}/${id}:`, e);
     }
   }
 
-  // Local update
-  const items = getLocalCollection(collectionName);
-  const updated = items.map((item) => (item.id === id ? { ...item, ...cleanUpdates } : item));
-  setLocalCollection(collectionName, updated);
-  window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
-  return { id, ...cleanUpdates };
+  return updatedRecord;
 };
 
 /**
  * Delete a record
+ * Instant Optimistic Execution
  */
 export const deleteRecord = async (collectionName, id) => {
-  if (db) {
-    try {
-      const docRef = doc(db, collectionName, id);
-      await deleteDoc(docRef);
-      const items = getLocalCollection(collectionName);
-      const filtered = items.filter((item) => item.id !== id);
-      setLocalCollection(collectionName, filtered);
-      window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
-      return true;
-    } catch (err) {
-      console.warn(`Firestore delete failed for ${collectionName}/${id}:`, err);
-    }
-  }
-
-  // Local delete
+  // 1. Instant local delete (<1ms)
   const items = getLocalCollection(collectionName);
   const filtered = items.filter((item) => item.id !== id);
   setLocalCollection(collectionName, filtered);
   window.dispatchEvent(new Event(`dofu_update_${collectionName}`));
+
+  // 2. Background Firestore delete (does NOT block caller UI)
+  if (db && !id.startsWith('loc_')) {
+    try {
+      const docRef = doc(db, collectionName, id);
+      deleteDoc(docRef).catch((err) => {
+        console.warn(`Background Firestore delete for ${collectionName}/${id}:`, err);
+      });
+    } catch (e) {
+      console.warn(`Error deleting Firestore doc ${collectionName}/${id}:`, e);
+    }
+  }
+
   return true;
 };
 

@@ -9,6 +9,7 @@ export const InvoiceModal = () => {
   const { modalConfig, setModalConfig, clients, invoices, addItem, editItem, settings } = useApp();
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
+  const [isSaving, setIsSaving] = useState(false);
 
   const generateNumber = (type) => getNextInvoiceNumber(invoices, type);
 
@@ -204,42 +205,49 @@ export const InvoiceModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.clientName.trim() || formData.items.length === 0) return;
+    if (!formData.clientName.trim() || formData.items.length === 0 || isSaving) return;
 
-    const sanitizedItems = formData.items.map((it) => ({
-      ...it,
-      quantity: Math.max(1, Number(it.quantity) || 1),
-      unitPrice: Math.max(0, Number(it.unitPrice) || 0)
-    }));
-    const disc = Math.max(0, Number(formData.discount) || 0);
-    const taxRate = Math.max(0, Number(formData.taxRate) || 0);
-    const paid = Math.max(0, Number(formData.amountPaid) || 0);
-    const sub = sanitizedItems.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
-    const postDisc = Math.max(0, sub - disc);
-    const tax = Math.round(postDisc * (taxRate / 100));
-    const grand = postDisc + tax;
-    let status = 'unpaid';
-    if (paid >= grand && grand > 0) status = 'paid';
-    else if (paid > 0) status = 'partial';
+    setIsSaving(true);
+    try {
+      const sanitizedItems = formData.items.map((it) => ({
+        ...it,
+        quantity: Math.max(1, Number(it.quantity) || 1),
+        unitPrice: Math.max(0, Number(it.unitPrice) || 0)
+      }));
+      const disc = Math.max(0, Number(formData.discount) || 0);
+      const taxRate = Math.max(0, Number(formData.taxRate) || 0);
+      const paid = Math.max(0, Number(formData.amountPaid) || 0);
+      const sub = sanitizedItems.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
+      const postDisc = Math.max(0, sub - disc);
+      const tax = Math.round(postDisc * (taxRate / 100));
+      const grand = postDisc + tax;
+      let status = 'unpaid';
+      if (paid >= grand && grand > 0) status = 'paid';
+      else if (paid > 0) status = 'partial';
 
-    const payload = {
-      ...formData,
-      items: sanitizedItems,
-      subtotal: sub,
-      discount: disc,
-      taxRate,
-      taxAmount: tax,
-      totalAmount: grand,
-      amountPaid: paid,
-      status
-    };
+      const payload = {
+        ...formData,
+        items: sanitizedItems,
+        subtotal: sub,
+        discount: disc,
+        taxRate,
+        taxAmount: tax,
+        totalAmount: grand,
+        amountPaid: paid,
+        status
+      };
 
-    if (isEditing) {
-      await editItem('invoices', existing.id, payload);
-    } else {
-      await addItem('invoices', payload);
+      if (isEditing) {
+        await editItem('invoices', existing.id, payload);
+      } else {
+        await addItem('invoices', payload);
+      }
+      setModalConfig({ type: null });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
-    setModalConfig({ type: null });
   };
 
   return (
@@ -605,8 +613,8 @@ export const InvoiceModal = () => {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Save Changes' : `Generate ${formData.type === 'quotation' ? 'Quote' : 'Invoice'}`}
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {isSaving ? 'Saving...' : (isEditing ? 'Save Changes' : `Generate ${formData.type === 'quotation' ? 'Quote' : 'Invoice'}`)}
           </button>
         </div>
       </form>

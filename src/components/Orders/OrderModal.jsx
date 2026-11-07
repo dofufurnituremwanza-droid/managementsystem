@@ -39,6 +39,7 @@ export const OrderModal = () => {
 
   const initialImages = getInitialImages(existing);
 
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     orderNumber: existing.orderNumber || generateOrderNum(),
     clientId: existing.clientId || '',
@@ -67,6 +68,7 @@ export const OrderModal = () => {
   });
 
   useEffect(() => {
+    setIsSaving(false);
     if (modalConfig.data) {
       const activeCat = existing.category || existing.itemName || 'Dining Table & Chairs';
       const orderDt = existing.orderDate || existing.createdAt?.split('T')[0] || todayStr;
@@ -224,241 +226,249 @@ export const OrderModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.clientName.trim()) return;
+    if (!formData.clientName.trim() || isSaving) return;
 
-    const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
-    const deliveryDate = formData.targetDeliveryDate || formData.dueDate || '';
-    const qNum = Math.max(1, Number(formData.quantity) || 1);
-    let uNum = Math.max(0, Number(formData.unitPrice) || 0);
-    let tNum = Math.max(0, Number(formData.totalPrice) || 0);
+    setIsSaving(true);
+    try {
+      const finalItemName = formData.itemName?.trim() || formData.category || 'Bespoke Custom Furniture';
+      const deliveryDate = formData.targetDeliveryDate || formData.dueDate || '';
+      const qNum = Math.max(1, Number(formData.quantity) || 1);
+      let uNum = Math.max(0, Number(formData.unitPrice) || 0);
+      let tNum = Math.max(0, Number(formData.totalPrice) || 0);
 
-    // Robust calculation so actual product price is NEVER 0
-    if (uNum > 0 && tNum === 0) {
-      tNum = qNum * uNum;
-    } else if (tNum > 0 && uNum === 0) {
-      uNum = Math.round(tNum / qNum);
-    } else if (uNum > 0 && tNum > 0 && tNum !== qNum * uNum) {
-      tNum = qNum * uNum;
-    }
-
-    const dNum = Math.max(0, Number(formData.depositPaid) || 0);
-    const expNum = Math.max(0, Number(formData.productionExpenses) || 0);
-    let profNum = Number(formData.expectedProfit);
-    if (isNaN(profNum) || profNum === 0) {
-      profNum = tNum > 0 && expNum > 0 ? Math.max(0, tNum - expNum) : (Number(formData.expectedProfit) || 0);
-    }
-    const profitMarginPct = tNum > 0 ? ((profNum / tNum) * 100).toFixed(1) : 0;
-
-    const payload = {
-      ...formData,
-      quantity: qNum,
-      unitPrice: uNum,
-      totalPrice: tNum,
-      depositPaid: dNum,
-      productionExpenses: expNum,
-      expectedProfit: profNum,
-      profitMargin: Number(profitMarginPct) || 0,
-      autoLogExpense: Boolean(formData.autoLogExpense),
-      expenseNotes: formData.expenseNotes || '',
-      expenseCategory: formData.expenseCategory || 'Timber & Raw Materials',
-      itemName: finalItemName,
-      color: formData.color || '',
-      fabric: formData.color || '',
-      orderDate: formData.orderDate || todayStr,
-      targetDeliveryDate: deliveryDate,
-      dueDate: deliveryDate
-    };
-
-    // Find if a linked invoice already exists
-    const existingInvoice = invoices?.find(
-      (inv) =>
-        (existing.id && inv.orderId === existing.id) ||
-        (formData.orderNumber && inv.orderNumber === formData.orderNumber)
-    );
-
-    const invoiceNum =
-      existingInvoice?.invoiceNumber ||
-      `INV-${formData.orderNumber.replace(/^[A-Za-z]+-?/, '') || Math.floor(1000 + Math.random() * 9000)}`;
-
-    const selectedClient = clients?.find(
-      (c) => c.id === formData.clientId || c.name === formData.clientName
-    );
-    const clientAddress = selectedClient?.address || selectedClient?.deliveryAddress || '';
-
-    const invStatus =
-      dNum >= tNum && tNum > 0
-        ? 'paid'
-        : dNum > 0
-        ? 'partial'
-        : 'unpaid';
-
-    const itemDesc = `${finalItemName}${formData.color ? ` - Color: ${formData.color}` : ''}${
-      formData.dimensions ? ` (${formData.dimensions})` : ''
-    }`;
-
-    const invoiceItem = {
-      description: itemDesc,
-      quantity: qNum,
-      unitPrice: uNum > 0 ? uNum : (tNum > 0 ? Math.round(tNum / qNum) : 0),
-      imageUrl: formData.imageUrl || ''
-    };
-
-    let savedRecord = null;
-    let savedInvoiceId = existingInvoice?.id || null;
-
-    if (isEditing) {
-      savedRecord = await editItem('orders', existing.id, {
-        ...payload,
-        invoiceNumber: invoiceNum
-      });
-
-      const invoicePayload = {
-        type: 'invoice',
-        invoiceNumber: invoiceNum,
-        orderId: existing.id,
-        orderNumber: formData.orderNumber,
-        clientId: formData.clientId || selectedClient?.id || '',
-        clientName: formData.clientName,
-        clientPhone: formData.clientPhone || selectedClient?.phone || '',
-        clientAddress: clientAddress,
-        issueDate: formData.orderDate || todayStr,
-        dueDate: deliveryDate || formData.orderDate || todayStr,
-        items: [invoiceItem],
-        subtotal: tNum,
-        discount: 0,
-        taxRate: 0,
-        taxAmount: 0,
-        totalAmount: tNum,
-        amountPaid: dNum,
-        paymentMethod: 'Bank Transfer / Cash',
-        status: invStatus,
-        notes: `Official Commercial Invoice for Order #${formData.orderNumber}. Category: ${
-          formData.category || 'Custom Furniture'
-        }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
-      };
-
-      if (existingInvoice) {
-        await editItem('invoices', existingInvoice.id, invoicePayload);
-      } else {
-        const createdInv = await addItem('invoices', invoicePayload);
-        savedInvoiceId = createdInv?.id;
+      // Robust calculation so actual product price is NEVER 0
+      if (uNum > 0 && tNum === 0) {
+        tNum = qNum * uNum;
+      } else if (tNum > 0 && uNum === 0) {
+        uNum = Math.round(tNum / qNum);
+      } else if (uNum > 0 && tNum > 0 && tNum !== qNum * uNum) {
+        tNum = qNum * uNum;
       }
 
-      showToast(`Order #${formData.orderNumber} & Official Invoice #${invoiceNum} updated!`, 'success');
-    } else {
-      savedRecord = await addItem('orders', {
-        ...payload,
-        invoiceNumber: invoiceNum
-      });
-
-      const invoicePayload = {
-        type: 'invoice',
-        invoiceNumber: invoiceNum,
-        orderId: savedRecord?.id || '',
-        orderNumber: formData.orderNumber,
-        clientId: formData.clientId || selectedClient?.id || '',
-        clientName: formData.clientName,
-        clientPhone: formData.clientPhone || selectedClient?.phone || '',
-        clientAddress: clientAddress,
-        issueDate: formData.orderDate || todayStr,
-        dueDate: deliveryDate || formData.orderDate || todayStr,
-        items: [invoiceItem],
-        subtotal: tNum,
-        discount: 0,
-        taxRate: 0,
-        taxAmount: 0,
-        totalAmount: tNum,
-        amountPaid: dNum,
-        paymentMethod: 'Bank Transfer / Cash',
-        status: invStatus,
-        notes: `Auto-generated official invoice for Customer Order #${formData.orderNumber}. Category: ${
-          formData.category || 'Custom Furniture'
-        }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
-      };
-
-      const createdInv = await addItem('invoices', invoicePayload);
-      savedInvoiceId = createdInv?.id;
-
-      if (savedRecord?.id && createdInv?.id) {
-        await editItem('orders', savedRecord.id, {
-          invoiceId: createdInv.id,
-          invoiceNumber: invoiceNum
-        });
+      const dNum = Math.max(0, Number(formData.depositPaid) || 0);
+      const expNum = Math.max(0, Number(formData.productionExpenses) || 0);
+      let profNum = Number(formData.expectedProfit);
+      if (isNaN(profNum) || profNum === 0) {
+        profNum = tNum > 0 && expNum > 0 ? Math.max(0, tNum - expNum) : (Number(formData.expectedProfit) || 0);
       }
+      const profitMarginPct = tNum > 0 ? ((profNum / tNum) * 100).toFixed(1) : 0;
 
-      try {
-        confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
-      } catch (err) {}
-
-      showToast(
-        `Order #${formData.orderNumber} recorded & Official Invoice #${invoiceNum} automatically prepared!`,
-        'success'
-      );
-    }
-
-    // Automatically synchronize workshop production expenses
-    const targetOrderId = savedRecord?.id || existing.id;
-    let finalLinkedExpId = existing.linkedExpenseId || null;
-
-    if (formData.autoLogExpense && expNum > 0) {
-      const existingExpense = expenses?.find(
-        (exp) =>
-          (existing.linkedExpenseId && exp.id === existing.linkedExpenseId) ||
-          (targetOrderId && exp.orderId === targetOrderId) ||
-          (formData.orderNumber && exp.orderNumber === formData.orderNumber && exp.title?.includes('Production Cost'))
-      );
-
-      const expensePayload = {
-        title: `Production Cost: ${formData.orderNumber} (${finalItemName})`,
-        category: formData.expenseCategory || 'Timber & Raw Materials',
-        amount: expNum,
-        date: formData.orderDate || todayStr,
-        paidTo: 'Workshop Production',
-        paymentMethod: 'Cash',
-        receiptRef: formData.orderNumber,
-        orderId: targetOrderId || '',
-        orderNumber: formData.orderNumber,
-        notes: formData.expenseNotes
-          ? `${formData.expenseNotes} (Auto-recorded from Order #${formData.orderNumber})`
-          : `Production material and labor costs for Order #${formData.orderNumber} (${finalItemName})`
-      };
-
-      if (existingExpense) {
-        await editItem('expenses', existingExpense.id, expensePayload);
-        finalLinkedExpId = existingExpense.id;
-      } else {
-        const createdExp = await addItem('expenses', expensePayload);
-        finalLinkedExpId = createdExp?.id;
-      }
-
-      if (targetOrderId && finalLinkedExpId) {
-        await editItem('orders', targetOrderId, { linkedExpenseId: finalLinkedExpId });
-      }
-    } else if ((!formData.autoLogExpense || expNum === 0) && (existing.linkedExpenseId || existing.id)) {
-      const existingExpense = expenses?.find(
-        (exp) =>
-          (existing.linkedExpenseId && exp.id === existing.linkedExpenseId) ||
-          (existing.id && exp.orderId === existing.id)
-      );
-      if (existingExpense) {
-        await removeItem('expenses', existingExpense.id);
-      }
-    }
-
-    // Automatically open Order & Deposit Payment Receipt with instant link to official invoice
-    setModalConfig({
-      type: 'order_receipt',
-      data: {
-        ...payload,
+      const payload = {
+        ...formData,
         quantity: qNum,
         unitPrice: uNum,
         totalPrice: tNum,
         depositPaid: dNum,
-        id: savedRecord?.id || existing.id,
-        invoiceId: savedInvoiceId,
-        invoiceNumber: invoiceNum
+        productionExpenses: expNum,
+        expectedProfit: profNum,
+        profitMargin: Number(profitMarginPct) || 0,
+        autoLogExpense: Boolean(formData.autoLogExpense),
+        expenseNotes: formData.expenseNotes || '',
+        expenseCategory: formData.expenseCategory || 'Timber & Raw Materials',
+        itemName: finalItemName,
+        color: formData.color || '',
+        fabric: formData.color || '',
+        orderDate: formData.orderDate || todayStr,
+        targetDeliveryDate: deliveryDate,
+        dueDate: deliveryDate
+      };
+
+      // Find if a linked invoice already exists
+      const existingInvoice = invoices?.find(
+        (inv) =>
+          (existing.id && inv.orderId === existing.id) ||
+          (formData.orderNumber && inv.orderNumber === formData.orderNumber)
+      );
+
+      const invoiceNum =
+        existingInvoice?.invoiceNumber ||
+        `INV-${formData.orderNumber.replace(/^[A-Za-z]+-?/, '') || Math.floor(1000 + Math.random() * 9000)}`;
+
+      const selectedClient = clients?.find(
+        (c) => c.id === formData.clientId || c.name === formData.clientName
+      );
+      const clientAddress = selectedClient?.address || selectedClient?.deliveryAddress || '';
+
+      const invStatus =
+        dNum >= tNum && tNum > 0
+          ? 'paid'
+          : dNum > 0
+          ? 'partial'
+          : 'unpaid';
+
+      const itemDesc = `${finalItemName}${formData.color ? ` - Color: ${formData.color}` : ''}${
+        formData.dimensions ? ` (${formData.dimensions})` : ''
+      }`;
+
+      const invoiceItem = {
+        description: itemDesc,
+        quantity: qNum,
+        unitPrice: uNum > 0 ? uNum : (tNum > 0 ? Math.round(tNum / qNum) : 0),
+        imageUrl: formData.imageUrl || ''
+      };
+
+      let savedRecord = null;
+      let savedInvoiceId = existingInvoice?.id || null;
+
+      if (isEditing) {
+        savedRecord = await editItem('orders', existing.id, {
+          ...payload,
+          invoiceNumber: invoiceNum
+        });
+
+        const invoicePayload = {
+          type: 'invoice',
+          invoiceNumber: invoiceNum,
+          orderId: existing.id,
+          orderNumber: formData.orderNumber,
+          clientId: formData.clientId || selectedClient?.id || '',
+          clientName: formData.clientName,
+          clientPhone: formData.clientPhone || selectedClient?.phone || '',
+          clientAddress: clientAddress,
+          issueDate: formData.orderDate || todayStr,
+          dueDate: deliveryDate || formData.orderDate || todayStr,
+          items: [invoiceItem],
+          subtotal: tNum,
+          discount: 0,
+          taxRate: 0,
+          taxAmount: 0,
+          totalAmount: tNum,
+          amountPaid: dNum,
+          paymentMethod: 'Bank Transfer / Cash',
+          status: invStatus,
+          notes: `Official Commercial Invoice for Order #${formData.orderNumber}. Category: ${
+            formData.category || 'Custom Furniture'
+          }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
+        };
+
+        if (existingInvoice) {
+          await editItem('invoices', existingInvoice.id, invoicePayload, { silent: true });
+        } else {
+          const createdInv = await addItem('invoices', invoicePayload, { silent: true });
+          savedInvoiceId = createdInv?.id;
+        }
+
+        showToast(`Order #${formData.orderNumber} & Official Invoice #${invoiceNum} updated!`, 'success');
+      } else {
+        savedRecord = await addItem('orders', {
+          ...payload,
+          invoiceNumber: invoiceNum
+        });
+
+        const invoicePayload = {
+          type: 'invoice',
+          invoiceNumber: invoiceNum,
+          orderId: savedRecord?.id || '',
+          orderNumber: formData.orderNumber,
+          clientId: formData.clientId || selectedClient?.id || '',
+          clientName: formData.clientName,
+          clientPhone: formData.clientPhone || selectedClient?.phone || '',
+          clientAddress: clientAddress,
+          issueDate: formData.orderDate || todayStr,
+          dueDate: deliveryDate || formData.orderDate || todayStr,
+          items: [invoiceItem],
+          subtotal: tNum,
+          discount: 0,
+          taxRate: 0,
+          taxAmount: 0,
+          totalAmount: tNum,
+          amountPaid: dNum,
+          paymentMethod: 'Bank Transfer / Cash',
+          status: invStatus,
+          notes: `Auto-generated official invoice for Customer Order #${formData.orderNumber}. Category: ${
+            formData.category || 'Custom Furniture'
+          }. Delivery: ${clientAddress || 'Mwanza Workshop Handover'}`
+        };
+
+        const createdInv = await addItem('invoices', invoicePayload, { silent: true });
+        savedInvoiceId = createdInv?.id;
+
+        if (savedRecord?.id && createdInv?.id) {
+          await editItem('orders', savedRecord.id, {
+            invoiceId: createdInv.id,
+            invoiceNumber: invoiceNum
+          }, { silent: true });
+        }
+
+        try {
+          confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
+        } catch (err) {}
+
+        showToast(
+          `Order #${formData.orderNumber} recorded & Official Invoice #${invoiceNum} automatically prepared!`,
+          'success'
+        );
       }
-    });
+
+      // Automatically synchronize workshop production expenses
+      const targetOrderId = savedRecord?.id || existing.id;
+      let finalLinkedExpId = existing.linkedExpenseId || null;
+
+      if (formData.autoLogExpense && expNum > 0) {
+        const existingExpense = expenses?.find(
+          (exp) =>
+            (existing.linkedExpenseId && exp.id === existing.linkedExpenseId) ||
+            (targetOrderId && exp.orderId === targetOrderId) ||
+            (formData.orderNumber && exp.orderNumber === formData.orderNumber && exp.title?.includes('Production Cost'))
+        );
+
+        const expensePayload = {
+          title: `Production Cost: ${formData.orderNumber} (${finalItemName})`,
+          category: formData.expenseCategory || 'Timber & Raw Materials',
+          amount: expNum,
+          date: formData.orderDate || todayStr,
+          paidTo: 'Workshop Production',
+          paymentMethod: 'Cash',
+          receiptRef: formData.orderNumber,
+          orderId: targetOrderId || '',
+          orderNumber: formData.orderNumber,
+          notes: formData.expenseNotes
+            ? `${formData.expenseNotes} (Auto-recorded from Order #${formData.orderNumber})`
+            : `Production material and labor costs for Order #${formData.orderNumber} (${finalItemName})`
+        };
+
+        if (existingExpense) {
+          await editItem('expenses', existingExpense.id, expensePayload, { silent: true });
+          finalLinkedExpId = existingExpense.id;
+        } else {
+          const createdExp = await addItem('expenses', expensePayload, { silent: true });
+          finalLinkedExpId = createdExp?.id;
+        }
+
+        if (targetOrderId && finalLinkedExpId) {
+          await editItem('orders', targetOrderId, { linkedExpenseId: finalLinkedExpId }, { silent: true });
+        }
+      } else if ((!formData.autoLogExpense || expNum === 0) && (existing.linkedExpenseId || existing.id)) {
+        const existingExpense = expenses?.find(
+          (exp) =>
+            (existing.linkedExpenseId && exp.id === existing.linkedExpenseId) ||
+            (existing.id && exp.orderId === existing.id)
+        );
+        if (existingExpense) {
+          await removeItem('expenses', existingExpense.id);
+        }
+      }
+
+      // Automatically open Order & Deposit Payment Receipt with instant link to official invoice
+      setModalConfig({
+        type: 'order_receipt',
+        data: {
+          ...payload,
+          quantity: qNum,
+          unitPrice: uNum,
+          totalPrice: tNum,
+          depositPaid: dNum,
+          id: savedRecord?.id || existing.id,
+          invoiceId: savedInvoiceId,
+          invoiceNumber: invoiceNum
+        }
+      });
+    } catch (err) {
+      console.error('Error saving order:', err);
+      showToast('Error saving order: ' + err.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const currentQty = Math.max(1, Number(formData.quantity) || 1);
@@ -905,8 +915,8 @@ export const OrderModal = () => {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Update Order' : 'Create Order & Print Receipt'}
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {isSaving ? 'Saving Order...' : (isEditing ? 'Update Order' : 'Create Order & Print Receipt')}
           </button>
         </div>
       </form>

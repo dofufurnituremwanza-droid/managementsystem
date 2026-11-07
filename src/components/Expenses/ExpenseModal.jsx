@@ -7,6 +7,7 @@ export const ExpenseModal = () => {
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
 
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     category: 'Timber & Raw Materials',
@@ -19,6 +20,7 @@ export const ExpenseModal = () => {
   });
 
   useEffect(() => {
+    setIsSaving(false);
     if (modalConfig.data) {
       setFormData({
         title: existing.title || '',
@@ -51,19 +53,26 @@ export const ExpenseModal = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const amt = Number(formData.amount) || 0;
-    if (!formData.title.trim() || !amt) return;
+    if (!formData.title.trim() || !amt || isSaving) return;
 
-    const payload = {
-      ...formData,
-      amount: amt
-    };
+    setIsSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        amount: amt
+      };
 
-    if (isEditing) {
-      await editItem('expenses', existing.id, payload);
-    } else {
-      await addItem('expenses', payload);
+      if (isEditing) {
+        await editItem('expenses', existing.id, payload);
+      } else {
+        await addItem('expenses', payload);
+      }
+      setModalConfig({ type: null });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
-    setModalConfig({ type: null });
   };
 
   return (
@@ -187,8 +196,8 @@ export const ExpenseModal = () => {
           >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Save Changes' : 'Record Expense'}
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {isSaving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Record Expense')}
           </button>
         </div>
       </form>
