@@ -3,14 +3,14 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { Plus, Trash2, ImagePlus, X } from 'lucide-react';
 import { compressImageFile } from '../../utils/imageCompressor';
+import { getNextInvoiceNumber } from '../../utils/numberGenerator';
 
 export const InvoiceModal = () => {
-  const { modalConfig, setModalConfig, clients, addItem, editItem, settings } = useApp();
+  const { modalConfig, setModalConfig, clients, invoices, addItem, editItem, settings } = useApp();
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
 
-  const generateNumber = (type) =>
-    `${type === 'quotation' ? 'QUO' : 'INV'}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const generateNumber = (type) => getNextInvoiceNumber(invoices, type);
 
   const [formData, setFormData] = useState({
     type: 'invoice', // invoice, quotation
@@ -104,7 +104,7 @@ export const InvoiceModal = () => {
         notes: ''
       });
     }
-  }, [modalConfig]);
+  }, [modalConfig, invoices]);
 
   if (modalConfig.type !== 'new_invoice' && modalConfig.type !== 'edit_invoice') {
     return null;

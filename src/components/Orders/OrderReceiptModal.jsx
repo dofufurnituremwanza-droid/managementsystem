@@ -645,27 +645,55 @@ export const OrderReceiptModal = () => {
               alignItems: 'flex-start'
             }}
           >
-            {/* Attached Reference Photo */}
-            {order.imageUrl && (
-              <div
-                style={{
-                  width: '110px',
-                  height: '100px',
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  border: '1.5px solid #cbd5e1',
-                  background: '#f8fafc',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <img
-                  src={order.imageUrl}
-                  alt="Product Reference Photo"
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                />
+            {/* Attached Reference Photos Gallery */}
+            {((order.images && order.images.length > 0) || order.imageUrl) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+                <div
+                  style={{
+                    width: '110px',
+                    height: '100px',
+                    borderRadius: '6px',
+                    overflow: 'hidden',
+                    border: '1.5px solid #cbd5e1',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <img
+                    src={order.images?.[0] || order.imageUrl}
+                    alt="Product Reference Photo"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+                {order.images && order.images.length > 1 && (
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '110px' }}>
+                    {order.images.slice(1, 4).map((extraImg, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          border: '1px solid #cbd5e1'
+                        }}
+                      >
+                        <img
+                          src={extraImg}
+                          alt={`Angle ${i + 2}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
+                    ))}
+                    {order.images.length > 4 && (
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', alignSelf: 'center' }}>
+                        +{order.images.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

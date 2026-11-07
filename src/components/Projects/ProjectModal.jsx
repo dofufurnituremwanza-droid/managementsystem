@@ -41,7 +41,8 @@ export const ProjectModal = () => {
       setFormData({
         projectCode: existing.projectCode || generateProjectCode(),
         title: existing.title || '',
-        imageUrl: existing.imageUrl || '',
+        imageUrl: existing.imageUrl || (existing.images && existing.images[0]) || '',
+        images: Array.isArray(existing.images) ? existing.images : (existing.imageUrl ? [existing.imageUrl] : []),
         clientId: existing.clientId || '',
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
@@ -190,9 +191,16 @@ export const ProjectModal = () => {
         </div>
 
         <ImageUploader
-          value={formData.imageUrl}
-          onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
-          label="3D Concept Render / Moodboard Photo (Optional)"
+          value={formData.images || (formData.imageUrl ? [formData.imageUrl] : [])}
+          onChange={(imgs) => {
+            const arr = Array.isArray(imgs) ? imgs : (imgs ? [imgs] : []);
+            setFormData((prev) => ({
+              ...prev,
+              images: arr,
+              imageUrl: arr[0] || ''
+            }));
+          }}
+          label="3D Concept Renders & Moodboard Photos (Attach Multiple Images)"
         />
 
         <div className="form-group">

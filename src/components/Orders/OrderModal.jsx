@@ -2,34 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../Common/Modal';
 import { ImageUploader } from '../Common/ImageUploader';
+import { getNextOrderNumber } from '../../utils/numberGenerator';
 import confetti from 'canvas-confetti';
 
 export const OrderModal = () => {
-  const { modalConfig, setModalConfig, clients, invoices, addItem, editItem, showToast } = useApp();
+  const { modalConfig, setModalConfig, clients, orders, invoices, addItem, editItem, showToast } = useApp();
   const isEditing = Boolean(modalConfig.data?.id);
   const existing = modalConfig.data || {};
 
-  const generateOrderNum = () => `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+  const generateOrderNum = () => getNextOrderNumber(orders);
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const getInitialImages = (data) => {
+    if (Array.isArray(data?.images) && data.images.length > 0) {
+      return data.images.filter(Boolean);
+    }
+    if (data?.imageUrl && typeof data.imageUrl === 'string' && data.imageUrl.trim().length > 0) {
+      return [data.imageUrl.trim()];
+    }
+    return [];
+  };
+
+  const initialImages = getInitialImages(existing);
+
   const [formData, setFormData] = useState({
-    orderNumber: generateOrderNum(),
-    clientId: '',
-    clientName: '',
-    clientPhone: '',
-    imageUrl: '',
-    category: 'Dining Table & Chairs',
-    itemName: 'Dining Table & Chairs',
-    color: '',
-    dimensions: '',
-    quantity: 1,
-    unitPrice: '',
-    totalPrice: '',
-    depositPaid: '',
-    orderDate: todayStr,
-    dueDate: '',
-    targetDeliveryDate: '',
-    status: 'draft'
+    orderNumber: existing.orderNumber || generateOrderNum(),
+    clientId: existing.clientId || '',
+    clientName: existing.clientName || '',
+    clientPhone: existing.clientPhone || '',
+    imageUrl: initialImages[0] || '',
+    images: initialImages,
+    category: existing.category || 'Dining Table & Chairs',
+    itemName: existing.itemName || 'Dining Table & Chairs',
+    color: existing.color || existing.fabric || '',
+    dimensions: existing.dimensions || '',
+    quantity: existing.quantity !== undefined && existing.quantity !== '' ? Number(existing.quantity) || 1 : 1,
+    unitPrice: existing.unitPrice || '',
+    totalPrice: existing.totalPrice || '',
+    depositPaid: existing.depositPaid || '',
+    orderDate: existing.orderDate || todayStr,
+    dueDate: existing.dueDate || '',
+    targetDeliveryDate: existing.targetDeliveryDate || existing.dueDate || '',
+    status: existing.status || 'draft'
   });
 
   useEffect(() => {
@@ -42,13 +56,15 @@ export const OrderModal = () => {
       const rawTotal = Number(existing.totalPrice) || Number(existing.price) || 0;
       const rawUnit = Number(existing.unitPrice) || (rawTotal > 0 ? Math.round(rawTotal / rawQty) : 0);
       const calculatedTotal = rawTotal > 0 ? rawTotal : (rawUnit * rawQty);
+      const existingImgs = getInitialImages(existing);
 
       setFormData({
         orderNumber: existing.orderNumber || generateOrderNum(),
         clientId: existing.clientId || '',
         clientName: existing.clientName || '',
         clientPhone: existing.clientPhone || '',
-        imageUrl: existing.imageUrl || '',
+        imageUrl: existingImgs[0] || '',
+        images: existingImgs,
         category: activeCat,
         itemName: existing.itemName || activeCat,
         color: existing.color || existing.fabric || '',
@@ -69,6 +85,7 @@ export const OrderModal = () => {
         clientName: '',
         clientPhone: '',
         imageUrl: '',
+        images: [],
         category: 'Dining Table & Chairs',
         itemName: 'Dining Table & Chairs',
         color: '',
@@ -83,7 +100,7 @@ export const OrderModal = () => {
         status: 'draft'
       });
     }
-  }, [modalConfig]);
+  }, [modalConfig, orders]);
 
   if (modalConfig.type !== 'new_order' && modalConfig.type !== 'edit_order') {
     return null;
@@ -376,11 +393,18 @@ export const OrderModal = () => {
           />
         </div>
 
-        {/* 5. Photo Design / Design Reference */}
+        {/* 5. Photo Design / Design Reference (Attach Multiple Images) */}
         <ImageUploader
-          value={formData.imageUrl}
-          onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
-          label="Photo Design / Design Reference"
+          value={formData.images || (formData.imageUrl ? [formData.imageUrl] : [])}
+          onChange={(imgs) => {
+            const arr = Array.isArray(imgs) ? imgs : (imgs ? [imgs] : []);
+            setFormData((prev) => ({
+              ...prev,
+              images: arr,
+              imageUrl: arr[0] || ''
+            }));
+          }}
+          label="Design Reference Photos (Attach Multiple Images)"
         />
 
         {/* 6. Category */}

@@ -237,3 +237,32 @@ export const syncAllLocalToFirestore = async (collectionsList) => {
   }
   return totalSynced;
 };
+
+/**
+ * Clear all system data across collections
+ */
+export const clearAllCollections = async (
+  collectionsList = ['clients', 'orders', 'projects', 'inventory', 'invoices', 'sales', 'expenses', 'notes']
+) => {
+  for (const col of collectionsList) {
+    try {
+      localStorage.removeItem(`${LOCAL_PREFIX}${col}`);
+      localStorage.setItem(`${LOCAL_PREFIX}${col}`, JSON.stringify([]));
+      window.dispatchEvent(new Event(`dofu_update_${col}`));
+    } catch (e) {
+      console.warn(`Error clearing local collection ${col}`, e);
+    }
+
+    if (db) {
+      try {
+        const colRef = collection(db, col);
+        const snapshot = await getDocs(colRef);
+        const deletes = snapshot.docs.map((d) => deleteDoc(doc(db, col, d.id)));
+        await Promise.all(deletes);
+      } catch (err) {
+        console.warn(`Firestore clear error on collection ${col}:`, err);
+      }
+    }
+  }
+};
+

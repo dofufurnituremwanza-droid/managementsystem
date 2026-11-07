@@ -49,7 +49,8 @@ export const SettingsView = () => {
     setTheme,
     triggerInstallApp,
     isStandalone,
-    isIOS
+    isIOS,
+    clearAllSystemData
   } = useApp();
 
   const [formData, setFormData] = useState({ ...settings });
@@ -145,6 +146,30 @@ export const SettingsView = () => {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Complete DOFU database exported safely to JSON!');
+  };
+
+  // Factory reset / Clear all recorded system data
+  const handleClearAllData = async () => {
+    const confirmed = window.confirm(
+      '⚠️ ATTENTION: Are you sure you want to CLEAR ALL RECORDED SYSTEM DATA?\n\n' +
+      'This will wipe all customer orders, clients, invoices, expenses, projects, and notes so the system starts 100% clean.\n\n' +
+      'Your business profile settings and passwords will be preserved.\n\n' +
+      'Click OK to proceed with clearing all data.'
+    );
+    if (!confirmed) return;
+
+    const doubleCheck = window.prompt(
+      'Type "CLEAR" in capital letters to confirm wiping all recorded business data:'
+    );
+    if (doubleCheck !== 'CLEAR') {
+      showToast('Action cancelled. Data was not cleared.', 'info');
+      return;
+    }
+
+    const success = await clearAllSystemData();
+    if (success) {
+      showToast('All system records cleared! Everything is reset to 0.', 'success');
+    }
   };
 
   const copyRules = () => {
@@ -824,6 +849,31 @@ export const SettingsView = () => {
           <button className="btn btn-secondary" onClick={handleExportBackup}>
             <Download size={15} />
             <span>Export Backup</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Danger Zone: Clear All System Data / Factory Reset */}
+      <div className="card" style={{ border: '1px solid rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.03)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <h4 style={{ color: '#ef4444', fontSize: '1.05rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trash2 size={18} />
+              <span>Clear All Recorded System Data (Factory Reset)</span>
+            </h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
+              Wipe all customer orders, client directory, invoices, workshop expenses, and notes to start 100% fresh. Business profile and login credentials remain safe.
+            </p>
+          </div>
+
+          <button
+            className="btn btn-danger"
+            onClick={handleClearAllData}
+            title="Wipe all recorded business transactions"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Trash2 size={16} />
+            <span>Clear Everything</span>
           </button>
         </div>
       </div>

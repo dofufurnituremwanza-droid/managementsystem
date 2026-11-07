@@ -5,7 +5,8 @@ import {
   updateRecord,
   deleteRecord,
   syncAllLocalToFirestore,
-  getLocalCollection
+  getLocalCollection,
+  clearAllCollections
 } from '../firebase/db';
 import {
   subscribeConnectionState,
@@ -415,6 +416,67 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // One-time automatic reset to clear previous recorded demo data
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('dofu_system_clean_v2') !== 'done') {
+        clearAllCollections([
+          'clients',
+          'orders',
+          'projects',
+          'inventory',
+          'invoices',
+          'sales',
+          'expenses',
+          'notes'
+        ]);
+        setClients([]);
+        setOrders([]);
+        setProjects([]);
+        setInventory([]);
+        setInvoices([]);
+        setSales([]);
+        setExpenses([]);
+        setNotes([]);
+        localStorage.setItem('dofu_system_clean_v2', 'done');
+      }
+    } catch (e) {
+      console.warn('Auto clear check error', e);
+    }
+  }, []);
+
+  // Clear all recorded data across the entire system
+  const clearAllSystemData = async () => {
+    setSyncing(true);
+    try {
+      await clearAllCollections([
+        'clients',
+        'orders',
+        'projects',
+        'inventory',
+        'invoices',
+        'sales',
+        'expenses',
+        'notes'
+      ]);
+      setClients([]);
+      setOrders([]);
+      setProjects([]);
+      setInventory([]);
+      setInvoices([]);
+      setSales([]);
+      setExpenses([]);
+      setNotes([]);
+      showToast('All system records cleared successfully! System is 100% fresh and clean.', 'success');
+      return true;
+    } catch (err) {
+      showToast('Failed to clear all records: ' + err.message, 'error');
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Currency Formatter Helper
   const formatMoney = (amount) => {
     const num = Number(amount) || 0;
@@ -586,6 +648,7 @@ export const AppProvider = ({ children }) => {
         addItem,
         editItem,
         removeItem,
+        clearAllSystemData,
         // Modals & Feedback
         modalConfig,
         setModalConfig,

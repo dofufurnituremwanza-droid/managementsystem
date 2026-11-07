@@ -283,10 +283,14 @@ export const OrdersList = () => {
                   <tr key={order.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {order.imageUrl ? (
+                        {order.imageUrl || (order.images && order.images.length > 0) ? (
                           <div
-                            onClick={() => setPreviewImage({ url: order.imageUrl, title: order.itemName })}
+                            onClick={() => {
+                              const imgs = Array.isArray(order.images) && order.images.length > 0 ? order.images : [order.imageUrl];
+                              setPreviewImage({ url: imgs[0] || order.imageUrl, images: imgs, title: order.itemName });
+                            }}
                             style={{
+                              position: 'relative',
                               width: '50px',
                               height: '50px',
                               borderRadius: '8px',
@@ -296,13 +300,30 @@ export const OrdersList = () => {
                               cursor: 'pointer',
                               background: '#090b0e'
                             }}
-                            title="Click to zoom product photo"
+                            title="Click to view product photos"
                           >
                             <img
-                              src={order.imageUrl}
+                              src={order.imageUrl || order.images?.[0]}
                               alt={order.itemName}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
+                            {order.images && order.images.length > 1 && (
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '2px',
+                                  right: '2px',
+                                  background: 'rgba(0, 0, 0, 0.8)',
+                                  color: 'var(--gold-light)',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 800,
+                                  padding: '1px 4px',
+                                  borderRadius: '3px'
+                                }}
+                              >
+                                +{order.images.length - 1}
+                              </span>
+                            )}
                           </div>
                         ) : null}
 
@@ -660,12 +681,14 @@ export const OrdersList = () => {
             </div>
             <div
               style={{
-                padding: '12px',
+                padding: '14px',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 maxHeight: '75vh',
-                overflow: 'auto'
+                overflow: 'auto',
+                gap: '12px'
               }}
             >
               <img
@@ -673,11 +696,36 @@ export const OrdersList = () => {
                 alt={previewImage.title}
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '70vh',
+                  maxHeight: previewImage.images && previewImage.images.length > 1 ? '58vh' : '70vh',
                   objectFit: 'contain',
                   borderRadius: '8px'
                 }}
               />
+
+              {previewImage.images && previewImage.images.length > 1 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
+                  {previewImage.images.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setPreviewImage((prev) => ({ ...prev, url: img }))}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        border: previewImage.url === img ? '2px solid var(--gold-primary)' : '1px solid rgba(255,255,255,0.2)',
+                        padding: 0,
+                        background: '#000',
+                        cursor: 'pointer'
+                      }}
+                      title={`Photo ${i + 1}`}
+                    >
+                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

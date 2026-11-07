@@ -55,74 +55,101 @@ export const DashboardView = () => {
 
   // 1. Total order statistics
   const totalOrdersCount = (orders || []).length;
-  const totalOrderValue = (orders || []).reduce(
-    (sum, o) => sum + (Number(o.totalPrice) || Number(o.price) || 0),
-    0
-  );
+  const totalOrderValue = (orders || []).reduce((sum, o) => {
+    const qty = Number(o.quantity) || 1;
+    const unit = Number(o.unitPrice) || 0;
+    const calcTotal = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
+    return sum + calcTotal;
+  }, 0);
 
-  // 2. Paid in full orders
+  // 2. Clients count
+  const totalClientsCount = (clients || []).length;
+
+  // 3. Paid in full orders
   const paidInFullOrders = (orders || []).filter((o) => {
-    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const qty = Number(o.quantity) || 1;
+    const unit = Number(o.unitPrice) || 0;
+    const total = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
     const deposit = Number(o.depositPaid) || 0;
     return (total > 0 && deposit >= total) || o.status === 'delivered' || o.isPaidInFull;
   });
   const paidInFullCount = paidInFullOrders.length;
 
-  // 3. Partial paid orders
+  // Partial paid orders
   const partialPaidOrders = (orders || []).filter((o) => {
-    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const qty = Number(o.quantity) || 1;
+    const unit = Number(o.unitPrice) || 0;
+    const total = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
     const deposit = Number(o.depositPaid) || 0;
     return deposit > 0 && deposit < total && o.status !== 'delivered' && !o.isPaidInFull;
   });
   const partialPaidCount = partialPaidOrders.length;
 
-  // 4. Unpaid orders
+  // Unpaid orders
   const unpaidOrders = (orders || []).filter((o) => {
-    const total = Number(o.totalPrice) || Number(o.price) || 0;
     const deposit = Number(o.depositPaid) || 0;
     return deposit === 0 && o.status !== 'delivered' && !o.isPaidInFull;
   });
   const unpaidCount = unpaidOrders.length;
 
-  // 5. Revenue generated from orders
+  // 4. Revenue Collected
   const revenueFromOrders = (orders || []).reduce((sum, o) => {
-    const total = Number(o.totalPrice) || Number(o.price) || 0;
+    const qty = Number(o.quantity) || 1;
+    const unit = Number(o.unitPrice) || 0;
+    const total = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
     const deposit = Number(o.depositPaid) || 0;
     if (o.status === 'delivered' || o.isPaidInFull) {
-      return sum + Math.max(deposit, total);
+      return sum + (total > 0 ? total : deposit);
     }
     return sum + deposit;
   }, 0);
 
-  // 6. Direct Showroom Sales revenue
+  // Direct Showroom Sales revenue
   const revenueFromSales = (sales || []).reduce(
     (sum, s) => sum + (Number(s.totalAmount) || Number(s.amount) || Number(s.totalPrice) || 0),
     0
   );
 
-  // 7. Standalone Invoices revenue
+  // Standalone Invoices revenue
   const standaloneInvoicesRevenue = (invoices || [])
     .filter((inv) => !inv.orderId && !inv.orderNumber)
     .reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
 
   const totalRevenueCollected = revenueFromOrders + revenueFromSales + standaloneInvoicesRevenue;
 
-  // 8. Outstanding Balance to Collect on Delivery
-  const totalOutstandingBalance = (orders || []).reduce((sum, o) => {
-    if (o.status === 'delivered' || o.isPaidInFull) return sum;
-    const total = Number(o.totalPrice) || Number(o.price) || 0;
-    const deposit = Number(o.depositPaid) || 0;
-    return sum + Math.max(0, total - deposit);
-  }, 0);
-
-  // 9. Total Expenses Spent
+  // 5. Expenses Spent
   const totalExpensesSpent = (expenses || []).reduce(
     (sum, e) => sum + (Number(e.amount) || 0),
     0
   );
 
-  // 10. Net Operating Balance
-  const netWorkshopBalance = totalRevenueCollected - totalExpensesSpent;
+  // 6. Outstanding Balances to Collect on Delivery
+  const outstandingFromOrders = (orders || []).reduce((sum, o) => {
+    if (o.status === 'delivered' || o.isPaidInFull || o.status === 'cancelled') return sum;
+    const qty = Number(o.quantity) || 1;
+    const unit = Number(o.unitPrice) || 0;
+    const total = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
+    const deposit = Number(o.depositPaid) || 0;
+    return sum + Math.max(0, total - deposit);
+  }, 0);
+
+  const outstandingFromInvoices = (invoices || [])
+    .filter((inv) => !inv.orderId && !inv.orderNumber && inv.status !== 'paid' && inv.status !== 'cancelled')
+    .reduce((sum, inv) => {
+      const invTotal = Number(inv.totalAmount) || 0;
+      const paid = Number(inv.amountPaid) || 0;
+      return sum + Math.max(0, invTotal - paid);
+    }, 0);
+
+  const totalOutstandingBalance = outstandingFromOrders + outstandingFromInvoices;
+
+  // 7. Profit and Loss
+  const netProfitLoss = totalRevenueCollected - totalExpensesSpent;
+  const profitMargin =
+    totalRevenueCollected > 0
+      ? ((netProfitLoss / totalRevenueCollected) * 100).toFixed(1)
+      : '0.0';
+  const netWorkshopBalance = netProfitLoss;
 
   // Operational states
   const activeOrders = (orders || []).filter(
@@ -307,8 +334,8 @@ export const DashboardView = () => {
       {/* Top Comprehensive Stat Cards: Financial & Operational Overview */}
       {isOwner ? (
         <div className="stats-grid">
-          {/* 1. Orders Recorded & Total Contract Value */}
-          <div className="stat-card">
+          {/* 1. ORDERS RECORDED */}
+          <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('orders')} title="View all customer furniture orders">
             <div className="stat-info">
               <div className="stat-label">Orders Recorded</div>
               <div className="stat-value">{totalOrdersCount}</div>
@@ -322,7 +349,22 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* 2. Total Revenue Collected */}
+          {/* 2. CLIENTS */}
+          <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('clients')} title="View customer CRM directory">
+            <div className="stat-info">
+              <div className="stat-label">Clients</div>
+              <div className="stat-value" style={{ color: '#60a5fa' }}>{totalClientsCount}</div>
+              <div className="stat-note">
+                <Users size={13} color="#60a5fa" />
+                <span>Active CRM Client Directory</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(96, 165, 250, 0.12)', color: '#60a5fa' }}>
+              <Users size={22} />
+            </div>
+          </div>
+
+          {/* 3. REVENUE COLLECTED */}
           <div className="stat-card">
             <div className="stat-info">
               <div className="stat-label">Revenue Collected</div>
@@ -339,10 +381,27 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* 3. Balance to Collect on Delivery */}
+          {/* 4. EXPENSES */}
+          <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('expenses')} title="View workshop expenses">
+            <div className="stat-info">
+              <div className="stat-label">Expenses</div>
+              <div className="stat-value" style={{ color: '#ef4444' }}>
+                {formatMoney(totalExpensesSpent)}
+              </div>
+              <div className="stat-note">
+                <Receipt size={13} color="#ef4444" />
+                <span>Timber, wages & workshop costs</span>
+              </div>
+            </div>
+            <div className="stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+              <Receipt size={22} />
+            </div>
+          </div>
+
+          {/* 5. OUTSTANDING BALANCES */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Balance to Collect</div>
+              <div className="stat-label">Outstanding Balances</div>
               <div className="stat-value" style={{ color: '#f59e0b' }}>
                 {formatMoney(totalOutstandingBalance)}
               </div>
@@ -356,62 +415,31 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          {/* 4. Settlement Status */}
+          {/* 6. PROFIT AND LOSS */}
           <div className="stat-card">
             <div className="stat-info">
-              <div className="stat-label">Settled / In Workshop</div>
-              <div className="stat-value" style={{ color: '#60a5fa' }}>
-                {paidInFullCount} / {activeOrders.length}
-              </div>
-              <div className="stat-note">
-                <CheckCircle2 size={13} color="#60a5fa" />
-                <span>{paidInFullCount} paid in full, {partialPaidCount} partial</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(96, 165, 250, 0.12)', color: '#60a5fa' }}>
-              <CheckCircle2 size={22} />
-            </div>
-          </div>
-
-          {/* 5. Expenses Spent */}
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Expenses Spent</div>
-              <div className="stat-value" style={{ color: '#ef4444' }}>
-                {formatMoney(totalExpensesSpent)}
-              </div>
-              <div className="stat-note">
-                <Receipt size={13} color="#ef4444" />
-                <span>Workshop materials & costs</span>
-              </div>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
-              <Receipt size={22} />
-            </div>
-          </div>
-
-          {/* 6. Net Operating Balance */}
-          <div className="stat-card">
-            <div className="stat-info">
-              <div className="stat-label">Net Cash Position</div>
+              <div className="stat-label">Profit and Loss</div>
               <div
                 className="stat-value"
-                style={{ color: netWorkshopBalance >= 0 ? 'var(--gold-primary)' : '#ef4444' }}
+                style={{ color: netProfitLoss >= 0 ? '#10b981' : '#ef4444' }}
               >
-                {formatMoney(netWorkshopBalance)}
+                {netProfitLoss >= 0 ? '+' : ''}{formatMoney(netProfitLoss)}
               </div>
               <div className="stat-note">
-                <span>Revenue − Expenses</span>
+                <TrendingUp size={13} color={netProfitLoss >= 0 ? '#10b981' : '#ef4444'} />
+                <span style={{ fontWeight: 700, color: netProfitLoss >= 0 ? '#10b981' : '#ef4444' }}>
+                  {netProfitLoss >= 0 ? `Net Profit (${profitMargin}%)` : `Operating Loss (${profitMargin}%)`}
+                </span>
               </div>
             </div>
             <div
               className="stat-icon-wrap"
               style={{
                 background:
-                  netWorkshopBalance >= 0
-                    ? 'rgba(197, 160, 89, 0.15)'
+                  netProfitLoss >= 0
+                    ? 'rgba(16, 185, 129, 0.15)'
                     : 'rgba(239, 68, 68, 0.15)',
-                color: netWorkshopBalance >= 0 ? 'var(--gold-primary)' : '#ef4444'
+                color: netProfitLoss >= 0 ? '#10b981' : '#ef4444'
               }}
             >
               <TrendingUp size={22} />

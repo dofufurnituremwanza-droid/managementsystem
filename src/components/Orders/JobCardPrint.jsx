@@ -153,8 +153,8 @@ export const JobCardPrint = () => {
           </div>
         </div>
 
-        {/* Product Reference Image if attached */}
-        {order.imageUrl && (
+        {/* Product Reference Images if attached */}
+        {((order.images && order.images.length > 0) || order.imageUrl) && (
           <div
             style={{
               marginBottom: '20px',
@@ -162,42 +162,46 @@ export const JobCardPrint = () => {
               borderRadius: '8px',
               overflow: 'hidden',
               background: '#f9fafb',
-              padding: '12px 16px',
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center'
+              padding: '12px 16px'
             }}
           >
-            <div
-              style={{
-                width: '150px',
-                height: '130px',
-                borderRadius: '6px',
-                overflow: 'hidden',
-                border: '1px solid #d1d5db',
-                background: '#fff',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <img
-                src={order.imageUrl}
-                alt="Product Reference Photo"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>
-                APPROVED PRODUCT REFERENCE PHOTO / DESIGN SKETCH
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(order.images && order.images.length > 0 ? order.images : [order.imageUrl]).slice(0, 4).map((img, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      width: order.images && order.images.length > 1 ? '110px' : '150px',
+                      height: order.images && order.images.length > 1 ? '100px' : '130px',
+                      borderRadius: '6px',
+                      overflow: 'hidden',
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <img
+                      src={img}
+                      alt={`Product Reference Photo ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                ))}
               </div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#111827', margin: '3px 0' }}>
-                {order.itemName}
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>
+                  APPROVED PRODUCT REFERENCE PHOTOS / DESIGN SKETCHES
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#111827', margin: '3px 0' }}>
+                  {order.itemName}
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
+                  Carpenters & upholsterers must cross-reference these photographs for joinery details, curves, timber finishes, and proportioning.
+                </p>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
-                Carpenters & upholsterers must cross-reference this photograph for joinery details, curves, and proportioning.
-              </p>
             </div>
           </div>
         )}
