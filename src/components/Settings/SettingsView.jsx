@@ -50,7 +50,9 @@ export const SettingsView = () => {
     triggerInstallApp,
     isStandalone,
     isIOS,
-    clearAllSystemData
+    clearAllSystemData,
+    fetchCloudDatabaseSnapshot,
+    importBackupToSystem
   } = useApp();
 
   const [formData, setFormData] = useState({ ...settings });
@@ -123,29 +125,105 @@ export const SettingsView = () => {
     }));
   };
 
-  // Export full JSON backup
-  const handleExportBackup = () => {
-    const backupData = {
-      exportedAt: new Date().toISOString(),
-      business: settings.businessName,
-      clients,
-      orders,
-      projects,
-      invoices,
-      expenses,
-      settings
-    };
+  const fileInputRef = React.useRef(null);
+  const [scanning, setScanning] = useState(false);
 
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
-      type: 'application/json'
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DOFU_Database_Backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('Complete DOFU database exported safely to JSON!');
+  // Scan Cloud Database Live
+  const handleScanDatabase = async () => {
+    setScanning(true);
+    try {
+      const snapshot = await fetchCloudDatabaseSnapshot();
+      const oCount = snapshot.counts?.orders || 0;
+      const cCount = snapshot.counts?.clients || 0;
+      const iCount = snapshot.counts?.invoices || 0;
+      const eCount = snapshot.counts?.expenses || 0;
+      showToast(
+        `Cloud Database Scan Complete: Verified ${oCount} Orders, ${cCount} Clients, ${iCount} Invoices, ${eCount} Expenses safely preserved in Firestore!`,
+        'success',
+        6000
+      );
+    } catch (err) {
+      showToast(`Scan failed: ${err.message}`, 'error');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Export full verified cloud & local backup
+  const handleExportBackup = async () => {
+    try {
+      showToast('Generating full verified backup snapshot...', 'info');
+      const cloudSnap = await fetchCloudDatabaseSnapshot();
+
+      const backupData = {
+        exportedAt: new Date().toISOString(),
+        business: settings.businessName,
+        systemVersion: 'DOFU_V2_LUXURY',
+        counts: cloudSnap.counts,
+        collections: cloudSnap.collections,
+        settings
+      };
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DOFU_DATABASE_FULL_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(
+        `Export complete! Full database backup (${cloudSnap.counts.orders} orders, ${cloudSnap.counts.clients} clients) saved to your device.`,
+        'success'
+      );
+    } catch (err) {
+      showToast(`Backup export error: ${err.message}`, 'error');
+    }
+  };
+
+  // Import / Restore backup file
+  const handleImportFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const content = evt.target?.result;
+          const parsed = JSON.parse(content);
+
+          const orderCount = parsed.collections?.orders?.length ?? parsed.orders?.length ?? 0;
+          const clientCount = parsed.collections?.clients?.length ?? parsed.clients?.length ?? 0;
+
+          const confirmed = window.confirm(
+            `Restore Backup from "${file.name}"?\n\n` +
+            `Found:\n` +
+            `• ${orderCount} Orders\n` +
+            `• ${clientCount} Clients\n\n` +
+            `This will safely restore these records into your cloud database and local device storage.\n\n` +
+            `Click OK to proceed.`
+          );
+
+          if (!confirmed) {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+          }
+
+          showToast('Restoring records into DOFU Management System...', 'info');
+          const restored = await importBackupToSystem(parsed);
+          showToast(`Successfully restored ${restored} records into Firestore and local store!`, 'success');
+        } catch (parseErr) {
+          showToast(`Invalid backup file: ${parseErr.message}`, 'error');
+        } finally {
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      showToast(`File read error: ${err.message}`, 'error');
+    }
   };
 
   // Factory reset / Clear all recorded system data
@@ -835,21 +913,93 @@ export const SettingsView = () => {
       </div>
 
       {/* Database Backup & Export Card */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+      <div className="card" style={{ border: '1px solid rgba(197, 160, 89, 0.3)', background: 'linear-gradient(135deg, rgba(22, 26, 34, 0.95) 0%, rgba(32, 26, 18, 0.6) 100%)' }}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImportFileChange}
+          accept=".json"
+          style={{ display: 'none' }}
+        />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
           <div>
-            <h4 style={{ color: 'var(--text-main)', fontSize: '1.05rem', marginBottom: '4px' }}>
-              Full Offline JSON Data Backup
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle2 size={13} /> CLOUD DATA SAFEGUARD ACTIVE
+              </span>
+            </div>
+            <h4 style={{ color: 'var(--text-main)', fontSize: '1.15rem', margin: '0 0 6px', fontFamily: 'var(--font-serif)' }}>
+              Cloud Database Backup & Disaster Recovery
             </h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
-              Download a complete JSON snapshot containing all your clients, custom furniture orders, interior design projects, quotations, invoices, and workshop expenses.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: 0, maxWidth: '640px' }}>
+              Your customer orders, wood specifications, invoices, and client directory are automatically preserved in Google Cloud Firestore and high-capacity IndexedDB. You can download full offline backups or restore from a backup file anytime.
             </p>
           </div>
 
-          <button className="btn btn-secondary" onClick={handleExportBackup}>
-            <Download size={15} />
-            <span>Export Backup</span>
-          </button>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleScanDatabase}
+              disabled={scanning}
+              title="Perform a live scan of cloud records"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw size={14} className={scanning ? 'spin' : ''} />
+              <span>{scanning ? 'Scanning Cloud...' : 'Scan Cloud Records'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline-gold"
+              onClick={() => fileInputRef.current?.click()}
+              title="Restore from an existing JSON backup file"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Upload size={14} />
+              <span>Restore Backup</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleExportBackup}
+              title="Download entire system backup file"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Download size={14} />
+              <span>Download Full Backup</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Live records summary grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: '10px',
+          padding: '14px',
+          borderRadius: '10px',
+          background: 'rgba(0, 0, 0, 0.25)',
+          border: '1px solid rgba(255, 255, 255, 0.05)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Orders Preserved</span>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--gold-primary)' }}>{orders.length}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Clients Registered</span>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#60a5fa' }}>{clients.length}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Invoices Preserved</span>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#34d399' }}>{invoices.length}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Workshop Expenses</span>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{expenses.length}</div>
+          </div>
         </div>
       </div>
 

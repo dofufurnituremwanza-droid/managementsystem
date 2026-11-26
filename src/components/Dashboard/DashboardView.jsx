@@ -36,7 +36,8 @@ export const DashboardView = () => {
     formatMoney,
     isOwner,
     isAssistant,
-    currentUser
+    currentUser,
+    loading
   } = useApp();
 
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -161,6 +162,7 @@ export const DashboardView = () => {
   );
 
   const isBrandNewSystem =
+    !loading &&
     totalOrdersCount === 0 &&
     (clients || []).length === 0 &&
     (invoices || []).length === 0;
@@ -328,6 +330,24 @@ export const DashboardView = () => {
     }
     return true; // 'all'
   });
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
+        <div style={{
+          width: '38px',
+          height: '38px',
+          border: '3px solid rgba(197, 160, 89, 0.2)',
+          borderTopColor: 'var(--gold-primary)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', letterSpacing: '0.04em' }}>
+          Loading DOFU Workshop Records...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>

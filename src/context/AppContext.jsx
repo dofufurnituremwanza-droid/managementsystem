@@ -6,7 +6,9 @@ import {
   deleteRecord,
   syncAllLocalToFirestore,
   getLocalCollection,
-  clearAllCollections
+  clearAllCollections,
+  fetchCloudDatabaseSnapshot,
+  importBackupToSystem
 } from '../firebase/db';
 import {
   subscribeConnectionState,
@@ -324,11 +326,25 @@ export const AppProvider = ({ children }) => {
   // Subscribe to all Collections
   useEffect(() => {
     const unsubs = [];
+    let initialCount = 0;
+
+    const notifyLoaded = () => {
+      initialCount++;
+      if (initialCount >= 2) {
+        setLoading(false);
+      }
+    };
 
     // Clients
-    unsubs.push(subscribeToCollection('clients', (data) => setClients(data)));
+    unsubs.push(subscribeToCollection('clients', (data) => {
+      setClients(data);
+      notifyLoaded();
+    }));
     // Orders
-    unsubs.push(subscribeToCollection('orders', (data) => setOrders(data)));
+    unsubs.push(subscribeToCollection('orders', (data) => {
+      setOrders(data);
+      notifyLoaded();
+    }));
     // Projects
     unsubs.push(subscribeToCollection('projects', (data) => setProjects(data)));
     // Inventory
@@ -344,9 +360,13 @@ export const AppProvider = ({ children }) => {
     // Staff & Assistants
     unsubs.push(subscribeToCollection('staff', (data) => setStaff(data)));
 
-    setLoading(false);
+    // Safety timeout ensures UI is never stuck loading even on offline or slow network
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 700);
 
     return () => {
+      clearTimeout(safetyTimer);
       unsubs.forEach((unsub) => typeof unsub === 'function' && unsub());
     };
   }, [firebaseState.isConnected]);
@@ -415,6 +435,8 @@ export const AppProvider = ({ children }) => {
       setSyncing(false);
     }
   };
+
+
 
   // Clear all recorded data across the entire system
   const clearAllSystemData = async () => {
@@ -626,6 +648,8 @@ export const AppProvider = ({ children }) => {
         editItem,
         removeItem,
         clearAllSystemData,
+        fetchCloudDatabaseSnapshot,
+        importBackupToSystem,
         // Modals & Feedback
         modalConfig,
         setModalConfig,

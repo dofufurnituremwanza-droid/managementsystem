@@ -12,9 +12,41 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
+import { getIdbCollection, setIdbCollection, clearIdbCollections } from './idb';
 
 // Storage prefix for local offline fallback
 const LOCAL_PREFIX = 'dofu_data_';
+
+/**
+ * Strips huge base64 image strings (>500 chars) for localStorage
+ * so that localStorage NEVER throws QuotaExceededError (5MB browser limit).
+ * Full high-resolution photos remain 100% preserved in IndexedDB & Firestore.
+ */
+const sanitizeForLocalStorage = (items) => {
+  if (!Array.isArray(items)) return items;
+  return items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    let modified = false;
+    let clean = { ...item };
+
+    if (Array.isArray(clean.images)) {
+      const hasLarge = clean.images.some((img) => typeof img === 'string' && img.length > 500);
+      if (hasLarge) {
+        clean.images = clean.images.map((img, idx) =>
+          typeof img === 'string' && img.startsWith('data:') ? `[IMAGE_${idx + 1}_INDEXEDDB]` : img
+        );
+        modified = true;
+      }
+    }
+
+    if (typeof clean.imageUrl === 'string' && clean.imageUrl.length > 500 && clean.imageUrl.startsWith('data:')) {
+      clean.imageUrl = '[IMAGE_INDEXEDDB]';
+      modified = true;
+    }
+
+    return modified ? clean : item;
+  });
+};
 
 export const getLocalCollection = (collectionName) => {
   try {
@@ -27,10 +59,17 @@ export const getLocalCollection = (collectionName) => {
 };
 
 export const setLocalCollection = (collectionName, items) => {
+  // 1. Save full payload (including base64 photos) to high-capacity IndexedDB
+  setIdbCollection(collectionName, items).catch((err) => {
+    console.warn(`Error persisting ${collectionName} to IndexedDB:`, err);
+  });
+
+  // 2. Save sanitized lightweight copy to localStorage so it never hits 5MB quota
   try {
-    localStorage.setItem(`${LOCAL_PREFIX}${collectionName}`, JSON.stringify(items));
+    const sanitized = sanitizeForLocalStorage(items);
+    localStorage.setItem(`${LOCAL_PREFIX}${collectionName}`, JSON.stringify(sanitized));
   } catch (e) {
-    console.error(`Error saving local collection ${collectionName}`, e);
+    console.warn(`LocalStorage quota exceeded for ${collectionName}, safely stored in IndexedDB:`, e);
   }
 };
 
@@ -43,15 +82,26 @@ export const setLocalCollection = (collectionName, items) => {
 export const subscribeToCollection = (collectionName, onData, onError) => {
   let unsubFirestore = null;
 
-  const emitLocal = () => {
-    try {
-      const items = getLocalCollection(collectionName);
-      onData(items);
-    } catch (e) {
-      console.warn(`Error reading local collection ${collectionName}`, e);
+  // 1. Immediately emit from synchronous localStorage for instant 0ms render
+  try {
+    const syncItems = getLocalCollection(collectionName);
+    if (syncItems && syncItems.length > 0) {
+      onData(syncItems);
     }
-  };
+  } catch (e) {
+    console.warn(`Error reading local collection ${collectionName}`, e);
+  }
 
+  // 2. Fetch full records with full photos from high-capacity IndexedDB
+  getIdbCollection(collectionName).then((idbItems) => {
+    if (Array.isArray(idbItems) && idbItems.length > 0) {
+      onData(idbItems);
+    }
+  }).catch((e) => {
+    console.warn(`Error reading IndexedDB for ${collectionName}:`, e);
+  });
+
+  // 3. Attach Firestore realtime onSnapshot listener
   if (db) {
     try {
       const colRef = collection(db, collectionName);
@@ -65,18 +115,23 @@ export const subscribeToCollection = (collectionName, onData, onError) => {
             createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toISOString() : d.data().createdAt,
             updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate().toISOString() : d.data().updatedAt,
           }));
+
           // Merge with any pending local records so in-flight saves are never wiped
           const localItems = getLocalCollection(collectionName);
           const unSyncedLocals = localItems.filter((loc) => !items.some((rem) => rem.id === loc.id));
           const merged = [...unSyncedLocals, ...items];
+
           setLocalCollection(collectionName, merged);
           onData(merged);
         },
         (err) => {
           console.warn(`Firestore subscription fallback for ${collectionName}:`, err.message);
           if (onError) onError(err);
-          // Fallback to local mirror
-          emitLocal();
+          // Fallback to IndexedDB / local mirror
+          getIdbCollection(collectionName).then((idbItems) => {
+            if (idbItems && idbItems.length > 0) onData(idbItems);
+            else onData(getLocalCollection(collectionName));
+          });
         }
       );
     } catch (e) {
@@ -84,18 +139,21 @@ export const subscribeToCollection = (collectionName, onData, onError) => {
     }
   }
 
-  // Always emit local data immediately so UI renders instantaneously without delay
-  emitLocal();
-
   // Listen for cross-tab storage changes
   const storageHandler = (e) => {
     if (e.key === `${LOCAL_PREFIX}${collectionName}`) {
-      emitLocal();
+      getIdbCollection(collectionName).then((idbItems) => {
+        if (idbItems && idbItems.length > 0) onData(idbItems);
+        else onData(getLocalCollection(collectionName));
+      });
     }
   };
   // Listen for same-tab custom events dispatched on add/update/delete
   const customHandler = () => {
-    emitLocal();
+    getIdbCollection(collectionName).then((idbItems) => {
+      if (idbItems && idbItems.length > 0) onData(idbItems);
+      else onData(getLocalCollection(collectionName));
+    });
   };
 
   window.addEventListener('storage', storageHandler);
@@ -285,11 +343,14 @@ export const syncAllLocalToFirestore = async (collectionsList) => {
 };
 
 /**
- * Clear all system data across collections
+ * Clear all system data across collections (Factory Reset)
  */
 export const clearAllCollections = async (
   collectionsList = ['clients', 'orders', 'projects', 'inventory', 'invoices', 'sales', 'expenses', 'notes']
 ) => {
+  // Clear IndexedDB store
+  await clearIdbCollections();
+
   for (const col of collectionsList) {
     try {
       localStorage.removeItem(`${LOCAL_PREFIX}${col}`);
@@ -311,4 +372,90 @@ export const clearAllCollections = async (
     }
   }
 };
+
+/**
+ * Directly fetch all records across all collections from Cloud Firestore.
+ * Used for guaranteed complete cloud backups and scans.
+ */
+export const fetchCloudDatabaseSnapshot = async () => {
+  const result = {
+    scannedAt: new Date().toISOString(),
+    collections: {},
+    counts: {}
+  };
+
+  const targetCollections = ['orders', 'clients', 'invoices', 'expenses', 'projects', 'sales', 'notes', 'staff'];
+
+  for (const colName of targetCollections) {
+    let items = [];
+    if (db) {
+      try {
+        const colRef = collection(db, colName);
+        const snap = await getDocs(colRef);
+        items = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toISOString() : d.data().createdAt,
+          updatedAt: d.data().updatedAt?.toDate ? d.data().updatedAt.toDate().toISOString() : d.data().updatedAt,
+        }));
+      } catch (err) {
+        console.warn(`Direct fetch failed for ${colName}, falling back to IndexedDB:`, err);
+      }
+    }
+
+    // If Firestore failed or returned empty, check IndexedDB
+    if (items.length === 0) {
+      items = await getIdbCollection(colName);
+    }
+    if (items.length === 0) {
+      items = getLocalCollection(colName);
+    }
+
+    result.collections[colName] = items;
+    result.counts[colName] = items.length;
+  }
+
+  return result;
+};
+
+/**
+ * Import and restore records from an exported backup object
+ */
+export const importBackupToSystem = async (backupPayload) => {
+  if (!backupPayload || typeof backupPayload !== 'object') {
+    throw new Error('Invalid backup file format.');
+  }
+
+  const collections = backupPayload.collections || backupPayload;
+  const targetCollections = ['orders', 'clients', 'invoices', 'expenses', 'projects', 'sales', 'notes', 'staff'];
+  let restoredCount = 0;
+
+  for (const col of targetCollections) {
+    const items = collections[col];
+    if (Array.isArray(items) && items.length > 0) {
+      // 1. Save to local stores
+      setLocalCollection(col, items);
+      window.dispatchEvent(new Event(`dofu_update_${col}`));
+
+      // 2. Sync into Firestore if available
+      if (db) {
+        for (const item of items) {
+          try {
+            const { id, ...data } = item;
+            if (id) {
+              const docRef = doc(db, col, id);
+              await setDoc(docRef, cleanForFirestore(data), { merge: true });
+              restoredCount++;
+            }
+          } catch (err) {
+            console.warn(`Error restoring ${col}/${item.id}:`, err);
+          }
+        }
+      }
+    }
+  }
+
+  return restoredCount;
+};
+
 

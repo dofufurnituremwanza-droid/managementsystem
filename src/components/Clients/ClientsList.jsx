@@ -14,12 +14,13 @@ import {
   FileText,
   User,
   Calendar,
-  MessageCircle
+  MessageCircle,
+  Download
 } from 'lucide-react';
 import { normalizePhoneForWhatsApp, openWhatsAppDirect } from '../../utils/whatsappShare';
 
 export const ClientsList = () => {
-  const { clients, orders, invoices, staff, setModalConfig, removeItem } = useApp();
+  const { clients, orders, invoices, staff, setModalConfig, removeItem, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [staffFilter, setStaffFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
@@ -61,6 +62,53 @@ export const ClientsList = () => {
 
     return matchSearch && matchStaff && matchDate;
   });
+
+  const exportClientsToCSV = () => {
+    if (clients.length === 0) {
+      showToast('No clients registered to export.', 'info');
+      return;
+    }
+
+    const headers = [
+      'Customer Name',
+      'Phone Number',
+      'Email',
+      'Delivery Address',
+      'Total Orders Placed',
+      'Registered Date',
+      'Recorded By'
+    ];
+
+    const escapeCsv = (val) => {
+      const s = String(val ?? '').replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const rows = clients.map((c) => {
+      const clientOrdersCount = orders.filter((o) => (o.clientId && o.clientId === c.id) || (o.clientName && o.clientName.toLowerCase() === c.name.toLowerCase())).length;
+      const date = c.recordedDate || (c.createdAt ? c.createdAt.split('T')[0] : '');
+
+      return [
+        escapeCsv(c.name || 'Customer'),
+        escapeCsv(c.phone || ''),
+        escapeCsv(c.email || ''),
+        escapeCsv(c.address || 'Mwanza'),
+        escapeCsv(clientOrdersCount),
+        escapeCsv(date),
+        escapeCsv(c.recordedBy || 'DOFU Management')
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DOFU_CLIENTS_BACKUP_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${clients.length} customer records to CSV successfully!`, 'success');
+  };
 
   const handleDelete = (id, name) => {
     if (window.confirm(`Are you sure you want to delete client record "${name}"?`)) {
@@ -122,13 +170,25 @@ export const ClientsList = () => {
           )}
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => setModalConfig({ type: 'new_client' })}
-        >
-          <Plus size={16} />
-          <span>Add Customer</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={exportClientsToCSV}
+            title="Download Excel / CSV spreadsheet of all customer contacts"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Download size={15} />
+            <span>Export Clients ({clients.length})</span>
+          </button>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => setModalConfig({ type: 'new_client' })}
+          >
+            <Plus size={16} />
+            <span>Add Customer</span>
+          </button>
+        </div>
       </div>
 
       {/* Zero State */}

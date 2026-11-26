@@ -19,7 +19,8 @@ import {
   User,
   Calendar,
   X,
-  MessageCircle
+  MessageCircle,
+  Download
 } from 'lucide-react';
 import { shareOrderReceiptViaWhatsApp } from '../../utils/whatsappShare';
 
@@ -158,6 +159,77 @@ export const OrdersList = () => {
     showToast(`Order ${order.orderNumber} unmarked. Reverted to partial payment (${formatMoney(restoredDeposit)}).`, 'warning');
   };
 
+  const exportOrdersToCSV = () => {
+    if (orders.length === 0) {
+      showToast('No orders recorded to export.', 'info');
+      return;
+    }
+
+    const headers = [
+      'Order Number',
+      'Date',
+      'Client Name',
+      'Client Phone',
+      'Item Name',
+      'Category',
+      'Wood Type',
+      'Dimensions',
+      'Quantity',
+      'Agreed Total (TZS)',
+      'Deposit Paid (TZS)',
+      'Remaining Balance (TZS)',
+      'Production Expenses (TZS)',
+      'Estimated Profit (TZS)',
+      'Status',
+      'Recorded By'
+    ];
+
+    const escapeCsv = (val) => {
+      const s = String(val ?? '').replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const rows = orders.map((o) => {
+      const qty = Number(o.quantity) || 1;
+      const unit = Number(o.unitPrice) || 0;
+      const total = Number(o.totalPrice) || Number(o.price) || (qty * unit) || 0;
+      const deposit = Number(o.depositPaid) || 0;
+      const balance = Math.max(0, total - deposit);
+      const expense = Number(o.materialExpense) || 0;
+      const profit = Number(o.estimatedProfit) || (total - expense);
+      const date = o.recordedDate || o.orderDate || (o.createdAt ? o.createdAt.split('T')[0] : '');
+
+      return [
+        escapeCsv(o.orderNumber || 'ORD'),
+        escapeCsv(date),
+        escapeCsv(o.clientName || 'Customer'),
+        escapeCsv(o.clientPhone || ''),
+        escapeCsv(o.itemName || ''),
+        escapeCsv(o.category || ''),
+        escapeCsv(o.woodType || ''),
+        escapeCsv(o.dimensions || ''),
+        escapeCsv(qty),
+        escapeCsv(total),
+        escapeCsv(deposit),
+        escapeCsv(balance),
+        escapeCsv(expense),
+        escapeCsv(profit),
+        escapeCsv(o.status || 'pending'),
+        escapeCsv(o.recordedBy || 'DOFU Management')
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DOFU_ORDERS_BACKUP_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${orders.length} orders to Excel/CSV successfully!`, 'success');
+  };
+
   const handleDelete = (id, num) => {
     if (window.confirm(`Are you sure you want to delete order "${num}"?`)) {
       removeItem('orders', id);
@@ -233,13 +305,25 @@ export const OrdersList = () => {
           )}
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => setModalConfig({ type: 'new_order' })}
-        >
-          <Plus size={16} />
-          <span>Take Custom Order</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={exportOrdersToCSV}
+            title="Download Excel / CSV spreadsheet of all customer orders"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Download size={15} />
+            <span>Export Orders ({orders.length})</span>
+          </button>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => setModalConfig({ type: 'new_order' })}
+          >
+            <Plus size={16} />
+            <span>Take Custom Order</span>
+          </button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
